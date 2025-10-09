@@ -6,7 +6,7 @@ from fastmcp import FastMCP
 
 mcp = FastMCP("KasNotionMCP")
 
-NOTION_TOKEN = os.getenv("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")  # required
+NOTION_TOKEN = os.getenv("NOTION_TOKEN")  # required
 NOTION_API_VERSION = os.getenv("NOTION_API_VERSION", "2022-06-28")
 DEFAULT_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")  # optional
 DEFAULT_DATA_SOURCE_ID = os.getenv("NOTION_DATA_SOURCE_ID")  # optional (2025-09-03+)
