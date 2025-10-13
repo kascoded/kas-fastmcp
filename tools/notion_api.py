@@ -5,11 +5,6 @@ from fastmcp import FastMCP  # import decorator directly if needed
 
 from notion_server.server import mcp  # ✅ import the existing instance
 
-# --- Environment variables ---
-NOTION_TOKEN = os.getenv("NOTION_TOKEN")
-NOTION_API_VERSION = os.getenv("NOTION_API_VERSION", "2022-06-28")
-DEFAULT_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
-DEFAULT_DATA_SOURCE_ID = os.getenv("NOTION_DATA_SOURCE_ID")
 
 # --- Helper for headers ---
 def _headers() -> Dict[str, str]:
