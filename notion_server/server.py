@@ -1,4 +1,9 @@
+from dotenv import load_dotenv
+import os
 from fastmcp import FastMCP
+
+load_dotenv()  # Load variables from .env into the environment
+
 
 # Initialize your FastMCP app
 mcp = FastMCP("KasNotionMCP")
