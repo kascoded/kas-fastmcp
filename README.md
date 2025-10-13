@@ -1,103 +1,173 @@
-# 🧠 Kas Notion MCP
+# 🧠 Kas FastMCP — Notion MCP Server
 
-A modular **FastMCP 2.0 server** that provides tools for querying and retrieving data from Notion databases and data sources.  
-Built for integration with **OpenAI AgentKit** and **FastMCP Cloud**, this server forms the foundation of Kas’s Notion-aware automation layer.
+A modular **FastMCP** (Fast Multi-Connected Platform) server built for **Notion API v2025-09-03** integration.
+This project powers AI agents and automation workflows that read, query, and create items in multiple Notion databases and data sources — such as your **Zettelkasten**, **Habits**, and other structured systems.
 
 ---
 
-## 📁 Project Structure
+## 📂 Project Structure
 
-kas-fastmcp/
+```
+KAS-FASTMCP/
+│
+├── .env                        # Environment variables (Notion token, DB IDs)
+├── config.py                   # Centralized configuration for tokens & databases
+├── main.py                     # Local runner for MCP testing
 ├── notion_server/
-│ ├── init.py
-│ └── server.py # Defines the FastMCP server (KasNotionMCP)
-├── tools/
-│ ├── init.py
-│ └── notion_api.py # Contains Notion API tools
-├── main.py # Entrypoint to run the server
-├── requirements.txt
-├── pyproject.toml
-└── README.md
+│   ├── server.py               # Initializes FastMCP app & loads tools
+│   └── tools/
+│       ├── __init__.py
+│       └── notion_api.py       # All Notion tool logic (query, get, create)
+│
+├── pyproject.toml              # Project metadata (optional for FastMCP Cloud)
+├── requirements.txt            # Python dependencies
+├── README.md                   # Project documentation
+└── .gitignore                  # Standard ignore rules for Python + venv
+```
 
 ---
 
-## ⚙️ Environment Variables
+## ⚙️ Environment Setup
 
-Create a `.env` file or configure these in **FastMCP Cloud**:
+### 1. Clone the repository
 
-| Variable | Description | Required |
-|-----------|--------------|-----------|
-| `NOTION_TOKEN` | Your Notion internal integration token | ✅ |
-| `NOTION_DATABASE_ID` | Default database ID for quick queries | optional |
-| `NOTION_DATA_SOURCE_ID` | Default data source ID (for 2025-09-03 API) | optional |
-| `NOTION_API_VERSION` | Notion API version (default `2022-06-28`) | optional |
-
----
-
-## 🚀 Local Setup
-
-### 1. Clone & create virtual environment
 ```bash
-git clone https://github.com/<your-username>/kas-fastmcp.git
+git clone https://github.com/<yourusername>/kas-fastmcp.git
 cd kas-fastmcp
+```
+
+### 2. Create a virtual environment
+
+```bash
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # macOS/Linux
+# OR
+.venv\Scripts\activate     # Windows
+```
+
+### 3. Install dependencies
+
+```bash
 pip install -r requirements.txt
-2. Run the server
-python main.py
-Expected output:
-FastMCP 2.0
-Server name: KasNotionMCP
-Transport: STDIO
-The MCP will now listen for incoming requests (e.g. from AgentKit or another client).
-🧰 Available Tools
-Tool	Description
-notion_query_database	Query a Notion database via /v1/databases/{id}/query
-notion_query_data_source	Query a Notion data source via /v1/data_sources/{id}/query
-notion_get_page	Retrieve a Notion page by ID
-Each tool returns the raw JSON response from the Notion API.
-☁️ Deploying to FastMCP Cloud
-Push this repo to GitHub
-Go to https://fastmcp.cloud
-Import your repository
-Add your environment variables
-Deploy 🚀
-Cloud will auto-detect:
-FastMCP entrypoint in main.py
-Dependencies from requirements.txt
-After deployment, you’ll get a URL like:
-https://fastmcp.cloud/<your-username>/kas-notion-mcp
-🤖 Connecting to OpenAI AgentKit
-In OpenAI Agent Builder → Tools → Add MCP Tool:
-Paste your FastMCP Cloud URL
-AgentKit will automatically discover the available tools:
-notion_query_database
-notion_query_data_source
-notion_get_page
-You can now issue natural-language commands such as:
-“Query my Notion database for pages tagged Zettelkasten sorted by last edited.”
-🧱 Extending
-Add new tools in tools/notion_api.py, for example:
-@mcp.tool(description="Create a new page in Notion")
-def notion_create_page(title: str, parent_database_id: Optional[str] = None) -> Dict[str, Any]:
-    ...
-FastMCP automatically registers new tools when the file is imported.
-💡 Developer Notes
-Why separate main.py and server.py?
-server.py defines what the MCP is (its tools and logic).
-main.py defines how to start it.
-This separation makes deployment cleaner, avoids circular imports, and prepares the project for multi-server setups (e.g., adding habit_server.py, zettel_server.py, etc.).
-Future Expansion
-You can scale this structure into a multi-tool MCP suite:
-kas-fastmcp/
-├── notion_server/
-├── habit_server/
-├── zettel_server/
-└── main.py
-Each module would define its own FastMCP tools and be deployable independently or merged into one super-server.
-📄 License
-MIT © 2025 Miras Kasymkhan
+```
+
+### 4. Create a `.env` file in the project root
+
+```bash
+NOTION_TOKEN=secret_xxxxx
+NOTION_API_VERSION=2025-09-03
+
+ZETTELKASTEN_DATABASE_ID=xxxxxxxxxxxxxxxx
+ZETTELKASTEN_DATA_SOURCE_ID=xxxxxxxxxxxxxxxx
+HABIT_DATABASE_ID=xxxxxxxxxxxxxxxx
+```
+
+> **Note:** Data sources are new in Notion API 2025-09-03.
+> If your database doesn’t use multiple data sources, leave `data_source_id` as `None`.
 
 ---
 
-Would you like me to include badges (like Python version, FastMCP Cloud deploy status,
+## 🧩 Configuration (`config.py`)
+
+The configuration file loads environment variables and maps all database contexts:
+
+```python
+class NotionConfig:
+    TOKEN = os.getenv("NOTION_TOKEN")
+    API_VERSION = os.getenv("NOTION_API_VERSION", "2025-09-03")
+
+    DATABASES = {
+        "zettelkasten": {
+            "database_id": os.getenv("ZETTELKASTEN_DATABASE_ID"),
+            "data_source_id": os.getenv("ZETTELKASTEN_DATA_SOURCE_ID"),
+        },
+        "habits": {
+            "database_id": os.getenv("HABIT_DATABASE_ID"),
+            "data_source_id": None,
+        },
+    }
+```
+
+---
+
+## 🚀 Running Locally
+
+Run your MCP server locally for testing:
+
+```bash
+python main.py
+```
+
+This starts your **KasNotionMCP** instance and exposes the registered tools (`notion_query`, `notion_get_page`, `notion_create_item`) to connected agents.
+
+---
+
+## 🧠 Core Tools
+
+| Tool                 | Description                                                      | API Endpoint                                                |
+| -------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------- |
+| `notion_query`       | Query a database or data source (auto-detects new vs legacy API) | `/v1/data_sources/{id}/query` or `/v1/databases/{id}/query` |
+| `notion_get_page`    | Retrieve a single Notion page by ID                              | `/v1/pages/{page_id}`                                       |
+| `notion_create_item` | Create a new entry in a Notion data source or database           | `/v1/data_sources/{id}/items` or `/v1/pages`                |
+
+---
+
+## 💡 Example Usage
+
+### Query Zettelkasten
+
+```python
+notion_query("zettelkasten", page_size=5)
+```
+
+### Query Habit Tracker
+
+```python
+notion_query("habits", filter={"property": "Done", "checkbox": {"equals": False}})
+```
+
+### Create a new Zettel
+
+```python
+notion_create_item(
+    "zettelkasten",
+    properties={
+        "Title": {"title": [{"text": {"content": "AI Philosophy Notes"}}]},
+        "Tags": {"multi_select": [{"name": "Systems"}]},
+    }
+)
+```
+
+---
+
+## 🧱 Built With
+
+* [FastMCP](https://github.com/jlowin/fastmcp) — lightweight multi-client Python framework
+* [Notion API v2025-09-03](https://developers.notion.com/reference/intro) — updated with Data Source support
+* [httpx](https://www.python-httpx.org/) — async-ready HTTP client
+* [python-dotenv](https://pypi.org/project/python-dotenv/) — for secure local config loading
+
+---
+
+## 🧭 Future Additions
+
+* [ ] `notion_update_item()` — update existing pages/items
+* [ ] Logging and error tracing middleware
+* [ ] Expand to support Obsidian and Flowise data integrations
+* [ ] Dockerfile for deployment
+* [ ] MCP Cloud deployment instructions
+
+---
+
+## 🪶 License
+
+MIT License © 2025 **Kas Creative Group**
+
+---
+
+## 🧰 Author
+
+**Miras Kasymkhan**
+🎨 [miraskas.com](https://miraskas.com)
+🧩 [kascurated.com](https://kascurated.com)
+🧠 Creator of the *Kas Digital Systems* and *KasOS* ecosystem.
