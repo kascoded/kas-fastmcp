@@ -1,0 +1,30 @@
+[project]
+name = "kas-fastmcp"
+version = "0.1.0"
+description = "Kas MCP Server — modular AI and Notion assistant tools."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Miras Kasymkhan", email = "contact@kascurated.com" }
+]
+
+dependencies = [
+    "fastmcp>=2.12.4",
+    "httpx>=0.27.2",
+    "pydantic>=2.7.1",
+    "python-dotenv>=1.0.1",
+    "pytest>=8.2.0",
+    "fastapi>=0.111.0",
+    "uvicorn>=0.30.0",
+    "openai>=1.35.0",
+    "langchain>=0.2.0",
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.fastmcp]
+# Optional section for MCP Cloud — describes your server entrypoint
+entrypoint = "notion_server:server"
+description = "Kas FastMCP server for Notion logging and AI tools"
