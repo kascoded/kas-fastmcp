@@ -1,7 +1,9 @@
 import os
 import httpx
 from typing import Optional, Dict, Any, List
-from fastmcp import tool  # import decorator directly if needed
+from fastmcp import FastMCP  # import decorator directly if needed
+
+mcp = FastMCP("KasNotionMCP")
 
 # --- Environment variables ---
 NOTION_TOKEN = os.getenv("NOTION_TOKEN")
@@ -20,7 +22,7 @@ def _headers() -> Dict[str, str]:
     }
 
 # --- Tools ---
-@tool
+@mcp.tool
 def notion_query_database(
     database_id: Optional[str] = None,
     filter: Optional[Dict[str, Any]] = None,
@@ -44,7 +46,7 @@ def notion_query_database(
     return r.json()
 
 
-@tool
+@mcp.tool
 def notion_query_data_source(
     data_source_id: Optional[str] = None,
     filter: Optional[Dict[str, Any]] = None,
@@ -68,7 +70,7 @@ def notion_query_data_source(
     return r.json()
 
 
-@tool
+@mcp.tool
 def notion_get_page(page_id: str) -> Dict[str, Any]:
     """Retrieve a Notion page by ID."""
     url = f"https://api.notion.com/v1/pages/{page_id}"
