@@ -5,7 +5,7 @@ load_dotenv()
 
 class NotionConfig:
     TOKEN = os.getenv("NOTION_TOKEN")
-    API_VERSION = os.getenv("NOTION_API_VERSION", "2022-06-28")
+    API_VERSION = os.getenv("NOTION_API_VERSION", "2025-09-03")
 
     DATABASES = {
         "zettelkasten": {
