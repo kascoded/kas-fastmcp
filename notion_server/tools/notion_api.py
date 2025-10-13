@@ -1,7 +1,7 @@
 import httpx
 from typing import Optional, Dict, Any, List
 from fastmcp import FastMCP
-from notion_server.server import mcp
+from notion_server.server import mcp 
 from config import NotionConfig
 
 
