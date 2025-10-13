@@ -3,7 +3,7 @@ import httpx
 from typing import Optional, Dict, Any, List
 from fastmcp import FastMCP  # import decorator directly if needed
 
-mcp = FastMCP("KasNotionMCP")
+from notion_server.server import mcp  # ✅ import the existing instance
 
 # --- Environment variables ---
 NOTION_TOKEN = os.getenv("NOTION_TOKEN")
