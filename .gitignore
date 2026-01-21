@@ -59,3 +59,6 @@ databases.yaml
 # Personal test scripts
 test_*.py
 run_*.sh
+
+# AI connetions configuration
+.gemini/
