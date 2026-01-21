@@ -5,7 +5,7 @@ description = "Kas MCP Server — modular AI and Notion assistant tools."
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
-    { name = "Miras Kasymkhan", email = "contact@kascurated.com" }
+    { name = "Miras Kasymkhan", email = "miras@kascurated.com" }
 ]
 
 dependencies = [

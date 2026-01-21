@@ -1,0 +1,28 @@
+# Notion Databases Configuration Template
+# Copy this to databases.yaml and fill in your actual database IDs
+
+# Each database entry requires:
+#   - data_source_id: ID from Notion (Settings → Manage data sources → Copy ID)
+#   - database_id: The main database ID (for fallback/compatibility)
+#   - title_property: Name of the title property (default: "title")
+#   - description: Human-readable description (optional)
+
+# Example database configuration:
+zettelkasten:
+  data_source_id: "your-data-source-id-here"
+  database_id: "your-database-id-here"
+  title_property: "title"
+  description: "Personal knowledge management system"
+
+# Add more databases as needed:
+# habits:
+#   data_source_id: "your-data-source-id-here"
+#   database_id: "your-database-id-here"
+#   title_property: "title"
+#   description: "Habit tracking database"
+#
+# projects:
+#   data_source_id: "your-data-source-id-here"
+#   database_id: "your-database-id-here"
+#   title_property: "Name"
+#   description: "Project management"

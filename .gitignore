@@ -1,10 +1,61 @@
-# Environment & config
+# Environment variables (contains secrets)
 .env
+.env.local
+.env.*.local
 
 # Python build/cache
 __pycache__/
-*.pyc
-.venv/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# FastMCP Studio
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# FastMCP
 .fastmcp/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+
+# Logs
+*.log
+logs/
+
+# Database configuration (contains sensitive IDs)
+databases.yaml
+
+# Personal test scripts
+test_*.py
+run_*.sh
