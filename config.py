@@ -13,25 +13,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def _load_databases_from_yaml() -> Dict[str, Dict[str, Any]]:
+def _load_databases_from_yaml() -> Optional[Dict[str, Dict[str, Any]]]:
     """
     Load database configuration from databases.yaml.
     
     Returns:
-        Dictionary of database configurations
-        
-    Raises:
-        FileNotFoundError: If databases.yaml doesn't exist
-        ValueError: If YAML is invalid or empty
+        Dictionary of database configurations, or None if file doesn't exist
     """
     yaml_path = Path(__file__).parent / "databases.yaml"
     
     if not yaml_path.exists():
-        raise FileNotFoundError(
-            f"Configuration file not found: {yaml_path}\n"
-            f"Create databases.yaml with your database configurations.\n"
-            f"See databases.yaml.example for template."
-        )
+        return None
     
     try:
         with open(yaml_path, "r") as f:
@@ -40,44 +32,85 @@ def _load_databases_from_yaml() -> Dict[str, Dict[str, Any]]:
         # Filter out None values and comments
         databases = {k: v for k, v in databases.items() if v and isinstance(v, dict)}
         
-        if not databases:
-            raise ValueError(
-                "databases.yaml is empty or contains no valid database entries.\n"
-                "Add at least one database configuration."
-            )
-            
-        return databases
+        return databases if databases else None
         
     except yaml.YAMLError as e:
-        raise ValueError(f"Invalid YAML in databases.yaml: {e}")
+        print(f"Warning: Invalid YAML in databases.yaml: {e}")
+        return None
     except Exception as e:
-        raise RuntimeError(f"Failed to load databases.yaml: {e}")
+        print(f"Warning: Failed to load databases.yaml: {e}")
+        return None
+
+
+def _load_databases_from_env() -> Optional[Dict[str, Dict[str, Any]]]:
+    """
+    Load database configuration from environment variables.
+    Useful for cloud deployments where databases.yaml isn't available.
+    
+    Expected environment variable format:
+        {DATABASE_NAME}_DATA_SOURCE_ID
+        {DATABASE_NAME}_DATABASE_ID
+        {DATABASE_NAME}_TITLE_PROPERTY (optional)
+        {DATABASE_NAME}_DESCRIPTION (optional)
+    
+    Example:
+        ZETTELKASTEN_DATA_SOURCE_ID=1d58645d-6355-8021-8111-000b41f7d430
+        ZETTELKASTEN_DATABASE_ID=1d58645d635580cc903acb164bb969b3
+        ZETTELKASTEN_TITLE_PROPERTY=title
+        ZETTELKASTEN_DESCRIPTION=Personal knowledge management
+    
+    Returns:
+        Dictionary of database configurations, or None if no databases found
+    """
+    databases = {}
+    
+    # Find all unique database names from environment variables
+    db_names = set()
+    for key in os.environ:
+        if key.endswith("_DATA_SOURCE_ID") or key.endswith("_DATABASE_ID"):
+            # Extract database name (everything before _DATA_SOURCE_ID or _DATABASE_ID)
+            if key.endswith("_DATA_SOURCE_ID"):
+                db_name = key[:-len("_DATA_SOURCE_ID")].lower()
+            else:
+                db_name = key[:-len("_DATABASE_ID")].lower()
+            db_names.add(db_name)
+    
+    # Build configuration for each database
+    for db_name in db_names:
+        prefix = db_name.upper()
+        
+        data_source_id = os.getenv(f"{prefix}_DATA_SOURCE_ID")
+        database_id = os.getenv(f"{prefix}_DATABASE_ID")
+        
+        # Need at least one ID
+        if data_source_id or database_id:
+            databases[db_name] = {
+                "data_source_id": data_source_id,
+                "database_id": database_id,
+                "title_property": os.getenv(f"{prefix}_TITLE_PROPERTY", "title"),
+                "description": os.getenv(f"{prefix}_DESCRIPTION"),
+            }
+    
+    return databases if databases else None
 
 
 class NotionConfig:
     """
     Notion API configuration.
     
-    Configuration is loaded from:
-    1. Environment variables (TOKEN, API_VERSION)
-    2. databases.yaml (database configurations)
+    Configuration is loaded from (in order of priority):
+    1. databases.yaml (local development)
+    2. Environment variables (cloud deployment)
     """
     
     TOKEN = os.getenv("NOTION_TOKEN")
     API_VERSION = os.getenv("NOTION_API_VERSION", "2025-09-03")
     
-    # Load databases from YAML only (no hardcoded fallback)
-    try:
-        DATABASES = _load_databases_from_yaml()
-    except (FileNotFoundError, ValueError) as e:
-        # Re-raise with helpful error message
-        raise RuntimeError(
-            f"Configuration Error: {e}\n\n"
-            f"To fix this:\n"
-            f"1. Create databases.yaml in the project root\n"
-            f"2. Add your database configurations\n"
-            f"3. See databases.yaml.example for reference"
-        ) from e
+    # Load databases from YAML first, fallback to environment variables
+    DATABASES = _load_databases_from_yaml() or _load_databases_from_env()
+    
+    # Track which source was used (for debugging)
+    _config_source = "yaml" if _load_databases_from_yaml() else "env" if DATABASES else "none"
     
     @classmethod
     def validate(cls):
@@ -103,7 +136,13 @@ class NotionConfig:
         
         # Validate databases
         if not cls.DATABASES:
-            errors.append("No databases configured in databases.yaml")
+            errors.append(
+                "No databases configured. Either:\n"
+                "  - Create databases.yaml (local), OR\n"
+                "  - Set environment variables (cloud):\n"
+                "      ZETTELKASTEN_DATA_SOURCE_ID=your-id\n"
+                "      ZETTELKASTEN_DATABASE_ID=your-id"
+            )
         
         for name, db in cls.DATABASES.items():
             # Check for required fields
@@ -140,7 +179,8 @@ class NotionConfig:
             available = list(cls.DATABASES.keys())
             raise ValueError(
                 f"Database '{name}' not found in configuration.\n"
-                f"Available databases: {available}"
+                f"Available databases: {available}\n"
+                f"Config source: {cls._config_source}"
             )
         return db.copy()  # Return copy to prevent mutation
     
@@ -202,12 +242,23 @@ class NotionConfig:
         return db.get("schema")
     
     @classmethod
+    def get_config_source(cls) -> str:
+        """
+        Get the source of the database configuration.
+        
+        Returns:
+            'yaml', 'env', or 'none'
+        """
+        return cls._config_source
+    
+    @classmethod
     def reload(cls):
         """
-        Reload configuration from files.
+        Reload configuration from files and environment.
         Useful for testing or dynamic config updates.
         """
         load_dotenv(override=True)
         cls.TOKEN = os.getenv("NOTION_TOKEN")
         cls.API_VERSION = os.getenv("NOTION_API_VERSION", "2025-09-03")
-        cls.DATABASES = _load_databases_from_yaml()
+        cls.DATABASES = _load_databases_from_yaml() or _load_databases_from_env()
+        cls._config_source = "yaml" if _load_databases_from_yaml() else "env" if cls.DATABASES else "none"
