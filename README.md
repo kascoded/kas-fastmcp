@@ -15,9 +15,12 @@ A production-grade Model Context Protocol (MCP) server for Notion, providing com
 ## Architecture
 
 ```
-notion_server/
-├── core/                    # Business logic (testable, reusable)
-│   ├── client.py           # HTTP client wrapper
+kas-fastmcp/
+├── main.py                 # FastMCP server entry point
+├── config.py              # Configuration management
+├── notion_server/         # Core MCP server package
+│   ├── core/             # Business logic (testable, reusable)
+│   │   ├── client.py     # HTTP client wrapper
 │   ├── formatters.py       # Property & block formatting
 │   └── schema.py           # Schema fetching & caching
 ├── tools/                   # MCP tools (thin layer)

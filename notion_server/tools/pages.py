@@ -195,3 +195,23 @@ async def notion_update_item(
         "url": result.get("url"),
         "updated": True,
     }
+
+
+@mcp.tool
+async def notion_archive_item(page_id: str) -> Dict[str, Any]:
+    """
+    Archives a page by its ID (soft delete).
+    
+    Args:
+        page_id: The page ID to archive
+    
+    Returns:
+        Confirmation of the archival
+    """
+    result = await _client.patch(f"pages/{page_id}", {"archived": True})
+    
+    return {
+        "page_id": result.get("id"),
+        "archived": result.get("archived", False),
+        "url": result.get("url"),
+    }
