@@ -53,8 +53,6 @@ htmlcov/
 *.log
 logs/
 
-# Database configuration (contains sensitive IDs)
-databases.yaml
 
 # Personal test scripts
 test_*.py

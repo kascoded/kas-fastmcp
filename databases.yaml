@@ -1,0 +1,756 @@
+# Notion Databases Configuration
+# Last updated: 2026-01-23T07:48:29.846788
+# 
+# Each database entry requires either:
+#   - data_source_id (preferred for API 2025-09-03)
+#   - database_id (will auto-resolve data_source_id)
+#
+# Optional fields:
+#   - title_property: Name of the title property (default: "title")
+#   - description: Human-readable description
+#   - schema: Property definitions (synced from Notion API)
+#   - last_sync: Last schema sync timestamp
+
+zettelkasten:
+  data_source_id: 1d58645d-6355-8021-8111-000b41f7d430
+  database_id: 1d58645d635580cc903acb164bb969b3
+  title_property: title
+  description: Personal knowledge management system
+  schema:
+    source:
+      type: url
+      id: '%3B%60Gq'
+    type:
+      type: select
+      id: '%3FXB_'
+      options:
+      - Permanent Note
+      - Monthly Summary
+      - Weekly Review
+      - Daily Note
+      - Idea
+      - Quick Capture
+      - Fleeting
+      - Script
+      - Invalid Type That Doesnt Exist
+      - Not A Valid Option
+    tags:
+      type: multi_select
+      id: ChlR
+      options:
+      - concept
+      - idea
+      - research
+      - theory
+      - method
+      - reference
+      - question
+      - insight
+      - review
+      - mobile
+      - source
+      - growth
+      - design
+      - test
+      - api
+      - note
+      - talk
+      - content
+      - social media
+      - production
+      - AI
+      - automation
+      - photo management
+      - website
+    created_at:
+      type: created_time
+      id: LGeX
+    id:
+      type: formula
+      id: '%5Dg_g'
+    related_project:
+      type: relation
+      id: bgWv
+    summary:
+      type: rich_text
+      id: bvGa
+    related_notes:
+      type: relation
+      id: i%3DAc
+    date:
+      type: date
+      id: qeT_
+    updated_at:
+      type: last_edited_time
+      id: vVE%3A
+    related_media:
+      type: relation
+      id: '%7B~go'
+    title:
+      type: title
+      id: title
+  last_sync: '2026-01-23T07:48:19.271455'
+habits:
+  data_source_id: 1e68645d-6355-81a5-b8ae-000ba846e974
+  database_id: 1e68645d635581bba112fe02ef28771e
+  title_property: title
+  description: Daily habit tracking and monitoring
+  schema:
+    eat:
+      type: checkbox
+      id: '%3AVz%3A'
+    updated_at:
+      type: last_edited_time
+      id: '%3Bl%5En'
+    created_at:
+      type: created_time
+      id: C%5Cxs
+    sleep:
+      type: checkbox
+      id: EdOl
+    progress_bar:
+      type: formula
+      id: '%5CD%40f'
+    workout:
+      type: checkbox
+      id: '%5CbLf'
+    read:
+      type: checkbox
+      id: _wx%3B
+    jornal:
+      type: checkbox
+      id: e%5E%7Bo
+    stretch:
+      type: checkbox
+      id: kzNu
+    draw:
+      type: checkbox
+      id: qeNE
+    run:
+      type: checkbox
+      id: yS_%7B
+    date:
+      type: date
+      id: '%7CAfW'
+    title:
+      type: title
+      id: title
+  last_sync: '2026-01-23T07:48:19.630594'
+project_management:
+  data_source_id: 01d5c9da-94e3-4df1-9ab7-ac988624724b
+  title_property: title
+  description: Project planning, tracking and management
+  schema:
+    Account:
+      type: multi_select
+      id: Mrj%7C
+      options:
+      - kas.curated
+      - miras.kas
+      - kas.captured
+      - mincedfish
+      - miraskas.com
+    Link:
+      type: url
+      id: '%5B%2C%7CO'
+    Publication Date:
+      type: date
+      id: aGAa
+    Deadline:
+      type: date
+      id: '%7C%258I'
+    Status:
+      type: select
+      id: ~%40Fg
+      options:
+      - Completed
+      - Paused
+      - Idea/Concept
+      - In Progress
+    Deliverable:
+      type: multi_select
+      id: ~QZU
+      options:
+      - Reel
+      - Threads Post
+      - Instagram Post
+      - Blog
+      - Product
+      - Art
+      - Website
+      - YouTube Video
+    Name:
+      type: title
+      id: title
+  last_sync: '2026-01-23T07:48:20.161829'
+ai_controls:
+  data_source_id: 2f18645d-6355-80eb-a0b9-000b541e6057
+  title_property: title
+  description: AI automation controls and configurations
+  schema:
+    Created time:
+      type: created_time
+      id: '%3EWap'
+    priority:
+      type: number
+      id: Hs%3Ca
+    control_type:
+      type: select
+      id: RWYk
+      options:
+      - routing_logic
+      - style_guide
+      - quality_criteria
+      - output_format
+      - persona_definition
+      - workflow_step
+      - validation_rule
+      - prompt_template
+    context:
+      type: multi_select
+      id: W%60ZI
+      options:
+      - video_content
+      - blog_content
+      - social_media
+      - review
+      - execution
+      - ideation
+      - project_management
+      - design_systems
+      - content_creation
+      - strategic
+      - technical
+      - creative
+    Last edited time:
+      type: last_edited_time
+      id: mBK%5C
+    active:
+      type: checkbox
+      id: saY%40
+    instruction_text:
+      type: rich_text
+      id: z%3B%3Fp
+    target_database:
+      type: multi_select
+      id: ~Ihj
+      options:
+      - blog
+      - projects
+      - habits
+      - zettelkasten
+    Name:
+      type: title
+      id: title
+  last_sync: '2026-01-23T07:48:20.797365'
+exercises:
+  data_source_id: c1dd4168-35cc-4c78-b0d3-35ee0fccb112
+  title_property: title
+  description: Exercise library and workout routines
+  schema:
+    created_at:
+      type: created_time
+      id: AYTW
+    type:
+      type: select
+      id: Nzpg
+      options:
+      - Weightlifting
+      - Flexibility
+      - Cardio
+      - Sport
+    muscle_group:
+      type: multi_select
+      id: U%5EFF
+      options:
+      - Chest
+      - Shoulders
+      - Core
+      - Back
+      - Hamstrings
+      - Biceps
+      - Quadriceps
+      - Glutes
+      - Calfs
+      - Triceps
+      - Hips
+      - Full Body
+    workout:
+      type: relation
+      id: ZMDS
+    reps:
+      type: number
+      id: '%5D%3ADN'
+    notes:
+      type: rich_text
+      id: jI%3Ci
+    updated_at:
+      type: last_edited_time
+      id: p%7DAb
+    url:
+      type: url
+      id: we%3Ch
+    sets:
+      type: number
+      id: '%7CqZl'
+    weight_kg:
+      type: number
+      id: ~WJs
+    exercise_name:
+      type: title
+      id: title
+  last_sync: '2026-01-23T07:48:21.633377'
+workout_schedule:
+  data_source_id: e9f226cb-0e7a-404d-bf46-1bf9852c2bed
+  title_property: title
+  description: Workout scheduling and planning
+  schema:
+    date:
+      type: date
+      id: '%3B%3Cx%3E'
+    difficulty:
+      type: select
+      id: '%3FwrA'
+      options:
+      - Easy
+      - Medium
+      - Hard
+    type:
+      type: rollup
+      id: CD%3A%40
+    location:
+      type: rich_text
+      id: Dfnq
+    notes:
+      type: rich_text
+      id: LM%5Ej
+    updated_at:
+      type: last_edited_time
+      id: X%3Dxr
+    related_excercises:
+      type: relation
+      id: '%5C__N'
+    duration(min):
+      type: number
+      id: '%5Dmke'
+    status:
+      type: select
+      id: '%5DnQs'
+      options:
+      - unscheduled
+      - planned
+      - complete
+      - incomplete
+    created_at:
+      type: created_time
+      id: lWUu
+    title:
+      type: title
+      id: title
+  last_sync: '2026-01-23T07:48:22.027372'
+calorie_tracker:
+  data_source_id: 1e68645d-6355-81f7-a1e0-000be4013ef9
+  title_property: title
+  description: Daily calorie and nutrition tracking
+  schema:
+    calories_total:
+      type: number
+      id: '%3CHcr'
+    carb:
+      type: number
+      id: '%3Dss%5E'
+    protein:
+      type: number
+      id: '%3F%7DIR'
+    fiber:
+      type: number
+      id: HUB%3F
+    related_recipe:
+      type: relation
+      id: PLcn
+    created_at:
+      type: created_time
+      id: Tr%60Q
+    serving:
+      type: rich_text
+      id: VN%3D_
+    updated_at:
+      type: last_edited_time
+      id: W%3Apm
+    available:
+      type: checkbox
+      id: '%5Eo_A'
+    sugar:
+      type: number
+      id: n%7Du%3F
+    fat:
+      type: number
+      id: riRQ
+    type:
+      type: select
+      id: tPcG
+      options:
+      - Proteins
+      - Carbohydrates
+      - Fats
+      - Vegetables
+      - Fruits
+      - Dairy
+      - Proccessed
+    calorie_calculation:
+      type: formula
+      id: u~Tp
+    food_item:
+      type: title
+      id: title
+  last_sync: '2026-01-23T07:48:22.439243'
+meal_planning:
+  data_source_id: 1e68645d-6355-81a1-a7f2-000b0616fef1
+  title_property: title
+  description: Weekly meal planning and organization
+  schema:
+    ingredients:
+      type: rollup
+      id: '%3DbqH'
+    notes:
+      type: rich_text
+      id: FANE
+    day_of_week:
+      type: select
+      id: Q%3FjJ
+      options:
+      - Monday
+      - Tuesday
+      - Wednesday
+      - Thursday
+      - Friday
+      - Saturday
+      - Sunday
+    cook_time:
+      type: rollup
+      id: SC%7DJ
+    related_recipe:
+      type: relation
+      id: WUdu
+    created_at:
+      type: created_time
+      id: YN%3C%60
+    date:
+      type: date
+      id: ajDP
+    type:
+      type: select
+      id: gCnr
+      options:
+      - Breakfast
+      - Lunch
+      - Dinner
+      - Snack
+    updated_at:
+      type: last_edited_time
+      id: '%7BCDp'
+    meal_name:
+      type: title
+      id: title
+  last_sync: '2026-01-23T07:48:23.272111'
+recipe_collection:
+  data_source_id: 1e68645d-6355-815d-bbb5-000b336645e1
+  title_property: title
+  description: Recipe collection and cooking instructions
+  schema:
+    rating:
+      type: select
+      id: HpTc
+      options:
+      - "\u2B50\uFE0F\u2B50\uFE0F\u2B50\uFE0F\u2B50\uFE0F\u2B50\uFE0F"
+      - "\u2B50\uFE0F\u2B50\uFE0F\u2B50\uFE0F\u2B50\uFE0F"
+      - "\u2B50\uFE0F\u2B50\uFE0F\u2B50\uFE0F"
+      - "\u2B50\uFE0F\u2B50\uFE0F"
+      - "\u2B50\uFE0F"
+    related_meal:
+      type: relation
+      id: NZKA
+    prep_time:
+      type: number
+      id: '%5E%40du'
+    created_at:
+      type: created_time
+      id: '%60%3BGw'
+    ingredients:
+      type: relation
+      id: cfDB
+    calories_calculation:
+      type: rollup
+      id: ndaQ
+    type:
+      type: select
+      id: s_t%40
+      options:
+      - Italian
+      - Mexican
+      - Chinese
+      - Japanese
+      - Indian
+      - Mediterranean
+      - Thai
+      - French
+      - American
+    calories_total:
+      type: rollup
+      id: '%7DGju'
+    dish_name:
+      type: title
+      id: title
+  last_sync: '2026-01-23T07:48:23.706014'
+expense_tracker:
+  data_source_id: 1f18645d-6355-807b-b1d2-000b91992835
+  title_property: title
+  description: Financial expense tracking and budgeting
+  schema:
+    Payment Method:
+      type: select
+      id: '%3BFGo'
+      options:
+      - Credit Card (Personal)
+      - Debit Card (Personal)
+      - Cash
+      - Bank Transfer (Personal)
+      - Mobile Payment
+      - Check
+      - Cryptocurrency
+      - Gift Card
+    Frequency:
+      type: select
+      id: GRUm
+      options:
+      - Daily
+      - Weekly
+      - Monthly
+      - Quarterly
+      - Annual
+      - One-time
+      - Irregular
+    Essential:
+      type: checkbox
+      id: GZ%5Cw
+    Sub-Category:
+      type: multi_select
+      id: Jd%3D%3A
+      options:
+      - Creative
+      - Cloud Storage
+      - Tools
+      - Operation
+      - Entertainement
+      - IT
+      - Kas
+    Paid:
+      type: checkbox
+      id: NUW%3B
+    Due Date:
+      type: date
+      id: Qz%7Dv
+    $/month:
+      type: number
+      id: '%60zJv'
+    Annual Cost:
+      type: formula
+      id: fsjZ
+    Notes:
+      type: rich_text
+      id: l%60U%7C
+    Category:
+      type: select
+      id: mr%7Cx
+      options:
+      - Housing
+      - Food
+      - Transportation
+      - Entertainment
+      - Subscriptions
+      - Utilities
+      - Healthcare
+      - Shopping
+      - Education
+      - Gym Membership
+      - Storage
+      - Loans
+    Active:
+      type: checkbox
+      id: nkk%7C
+    Expense Name:
+      type: title
+      id: title
+  last_sync: '2026-01-23T07:48:24.068478'
+blog_content:
+  data_source_id: 2158645d-6355-80a9-b314-000bc99c42ae
+  title_property: title
+  description: Blog content creation and publishing workflow
+  schema:
+    slug:
+      type: rich_text
+      id: '%40%7Cql'
+    author:
+      type: people
+      id: JbXJ
+    date:
+      type: date
+      id: OEbk
+    featured_image:
+      type: files
+      id: Z%5BFU
+    tags:
+      type: multi_select
+      id: Z_eN
+      options:
+      - Website
+      - kasNS
+      - miraskas
+      - NotionLogger
+      - Threads
+    is_published:
+      type: checkbox
+      id: '%5Cx%3C%7D'
+    created_at:
+      type: created_time
+      id: fNnp
+    updated_at:
+      type: last_edited_time
+      id: '%7BD%5DA'
+    title:
+      type: title
+      id: title
+  last_sync: '2026-01-23T07:48:26.957147'
+media_library:
+  data_source_id: f65b58c7-3419-4c64-8605-3c33c8e833a0
+  title_property: title
+  description: Media library and digital asset management
+  schema:
+    score:
+      type: select
+      id: )Y7%22
+      options:
+      - "\u2B50\uFE0F\u2B50\uFE0F\u2B50\uFE0F\u2B50\uFE0F\u2B50\uFE0F"
+      - "\u2B50\uFE0F\u2B50\uFE0F\u2B50\uFE0F\u2B50\uFE0F"
+      - "\u2B50\uFE0F\u2B50\uFE0F\u2B50\uFE0F"
+      - "\u2B50\uFE0F\u2B50\uFE0F"
+      - "\u2B50\uFE0F"
+    type:
+      type: select
+      id: '%2F7eo'
+      options:
+      - Article
+      - TV Series
+      - Film
+      - Podcast
+      - Academic Journal
+      - Essay Resource
+      - Book
+      - WebNovel
+      - Anime
+      - Manga
+      - Manhwa
+      - Manhua
+      - Design
+    publisher:
+      type: select
+      id: '%3E%24Pb'
+      options:
+      - NYT
+      - Netflix
+      - Indie
+      - Bon Appetit
+      - Franklin Institute
+      - Springer
+      - Emerald Group
+      - The Atlantic
+      - Prime
+      - YouTube
+    related_notes:
+      type: relation
+      id: '%3Es%3AZ'
+    summary:
+      type: rich_text
+      id: '%3F%5C25'
+    date_published:
+      type: date
+      id: '%3Fex%2B'
+    created_at:
+      type: created_time
+      id: AyqY
+    url:
+      type: url
+      id: VVMi
+    date:
+      type: date
+      id: VX%3B%3A
+    updated_at:
+      type: last_edited_time
+      id: Y%7DAH
+    status:
+      type: select
+      id: '%60zz5'
+      options:
+      - Ready to Start
+      - Reading
+      - Finished
+      - Listening
+      - Watching
+      - Reading Backlog
+      - To Watch
+      - Stopped
+      - Paused
+      - To Read
+    tags:
+      type: multi_select
+      id: cO_%5E
+      options:
+      - trash
+    sentiment:
+      type: rich_text
+      id: ovfs
+    author:
+      type: multi_select
+      id: qNw_
+      options:
+      - Miras
+      - Annie Duke
+      - Frank Darabont
+      - Marcus Aurelius
+      - George McKeown
+    genre:
+      type: multi_select
+      id: v%5Dlw
+      options:
+      - Drama
+      - Philosphy
+      - Mindset
+      - Adventure
+      - Shonen
+      - Design
+      - Cultivation
+      - Pop Culture
+      - Comedy
+    title:
+      type: title
+      id: title
+  last_sync: '2026-01-23T07:48:27.674155'
+  
+reading_list:
+  data_source_id: 1348645d-6355-8137-887f-000b61417be2
+  title_property: title
+  description: Reading list and book management
+  schema:
+    Cover:
+      type: files
+      id: 4m%5E!
+    Author:
+      type: rich_text
+      id: 7YKj
+    URL:
+      type: url
+      id: '%3A_P%3E'
+    Name:
+      type: title
+      id: title
+  last_sync: '2026-01-23T07:48:28.129325'
