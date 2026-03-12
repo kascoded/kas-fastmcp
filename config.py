@@ -13,33 +13,53 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def _load_databases_from_yaml() -> Optional[Dict[str, Dict[str, Any]]]:
-    """
-    Load database configuration from databases.yaml.
-    
-    Returns:
-        Dictionary of database configurations, or None if file doesn't exist
-    """
-    yaml_path = Path(__file__).parent / "databases.yaml"
-    
+def _user_config_yaml_path() -> Path:
+    """Return the user-level databases.yaml path: ~/.config/kas-fastmcp/databases.yaml."""
+    return Path.home() / ".config" / "kas-fastmcp" / "databases.yaml"
+
+
+def _load_yaml_from_path(yaml_path: Path) -> Optional[Dict[str, Dict[str, Any]]]:
+    """Load and parse a databases.yaml file from the given path."""
     if not yaml_path.exists():
         return None
-    
+
     try:
         with open(yaml_path, "r") as f:
             databases = yaml.safe_load(f) or {}
-            
+
         # Filter out None values and comments
         databases = {k: v for k, v in databases.items() if v and isinstance(v, dict)}
-        
+
         return databases if databases else None
-        
+
     except yaml.YAMLError as e:
-        print(f"Warning: Invalid YAML in databases.yaml: {e}")
+        print(f"Warning: Invalid YAML in {yaml_path}: {e}")
         return None
     except Exception as e:
-        print(f"Warning: Failed to load databases.yaml: {e}")
+        print(f"Warning: Failed to load {yaml_path}: {e}")
         return None
+
+
+def _load_databases_from_yaml() -> Optional[Dict[str, Dict[str, Any]]]:
+    """
+    Load database configuration from databases.yaml.
+
+    Checks in order:
+    1. ~/.config/kas-fastmcp/databases.yaml  (user-level, written by notion_sync_schemas)
+    2. <project-root>/databases.yaml          (project-local, for development)
+
+    Returns:
+        Dictionary of database configurations, or None if neither file exists
+    """
+    # 1. User-level config takes priority (written by notion_sync_schemas)
+    user_path = _user_config_yaml_path()
+    result = _load_yaml_from_path(user_path)
+    if result is not None:
+        return result
+
+    # 2. Fall back to project-local file
+    project_path = Path(__file__).parent / "databases.yaml"
+    return _load_yaml_from_path(project_path)
 
 
 def _load_databases_from_env() -> Optional[Dict[str, Dict[str, Any]]]:

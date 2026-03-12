@@ -7,6 +7,9 @@ No business logic - pure HTTP wrapper.
 from typing import Optional, Dict, Any
 import httpx
 from config import NotionConfig
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class NotionClient:
@@ -52,24 +55,26 @@ class NotionClient:
         endpoint: str,
         payload: Optional[Dict[str, Any]] = None,
         timeout: int = 45,
+        params: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Make async HTTP request to Notion API.
-        
+
         Args:
             method: HTTP method (GET, POST, PATCH, etc.)
             endpoint: API endpoint (without base URL)
             payload: Request body (for POST/PATCH)
             timeout: Request timeout in seconds
-            
+            params: Query string parameters (for GET)
+
         Returns:
             JSON response from Notion API
-            
+
         Raises:
             RuntimeError: On HTTP errors with helpful messages
         """
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
-        
+
         async with httpx.AsyncClient(timeout=timeout) as client:
             try:
                 response = await client.request(
@@ -77,6 +82,7 @@ class NotionClient:
                     url=url,
                     headers=self._headers(),
                     json=payload,
+                    params=params,
                 )
                 response.raise_for_status()
                 return response.json()
@@ -125,9 +131,14 @@ class NotionClient:
     
     # Convenience methods for common operations
     
-    async def get(self, endpoint: str, timeout: int = 45) -> Dict[str, Any]:
+    async def get(
+        self,
+        endpoint: str,
+        timeout: int = 45,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         """GET request."""
-        return await self.request("GET", endpoint, timeout=timeout)
+        return await self.request("GET", endpoint, timeout=timeout, params=params)
     
     async def post(
         self, 

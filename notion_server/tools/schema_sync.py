@@ -3,18 +3,16 @@ Schema Synchronization Tools
 Tools for syncing database schemas and configurations between Notion and local config.
 """
 
+import logging
 from typing import Dict, Any, List, Optional
 from notion_server.server import mcp
-from notion_server.core import NotionClient, SchemaManager
-from config import NotionConfig
+from notion_server.deps import _client, _schema_manager
+from config import NotionConfig, _user_config_yaml_path
 import yaml
 from pathlib import Path
 import datetime
 
-
-# Initialize core modules
-_client = NotionClient()
-_schema_manager = SchemaManager(_client)
+logger = logging.getLogger(__name__)
 
 
 @mcp.tool
@@ -33,6 +31,12 @@ async def notion_sync_schemas(
     Returns:
         Sync results with schema information and any config updates
     """
+    if update_config:
+        logger.warning(
+            "notion_sync_schemas called with update_config=True: "
+            "will write to ~/.config/kas-fastmcp/databases.yaml"
+        )
+
     if source_names is None:
         source_names = list(NotionConfig.DATABASES.keys())
     
@@ -217,52 +221,57 @@ async def notion_validate_config() -> Dict[str, Any]:
 
 def _update_databases_yaml(updated_configs: Dict[str, Dict[str, Any]]) -> bool:
     """
-    Update the databases.yaml file with new configurations.
-    
+    Write updated database configurations to ~/.config/kas-fastmcp/databases.yaml.
+
+    Writes to the user-level config path so the project-local databases.yaml
+    remains a clean development default and is never overwritten at runtime.
+
     Args:
         updated_configs: Dictionary of source_name -> updated config
-        
+
     Returns:
         True if file was updated successfully
     """
-    yaml_path = Path(__file__).parent.parent.parent / "databases.yaml"
-    
-    if not yaml_path.exists():
-        raise FileNotFoundError("databases.yaml not found - cannot update config")
-    
-    # Load current YAML
-    with open(yaml_path, "r") as f:
-        content = f.read()
-    
-    # Parse as YAML to maintain structure
-    current_data = yaml.safe_load(content) or {}
-    
-    # Update with new configs
+    yaml_path = _user_config_yaml_path()
+
+    # Ensure the directory exists
+    yaml_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Seed from existing user-level file if present, otherwise start empty
+    current_data: Dict[str, Any] = {}
+    if yaml_path.exists():
+        try:
+            with open(yaml_path, "r") as f:
+                current_data = yaml.safe_load(f) or {}
+        except Exception as e:
+            logger.warning("Could not read existing %s: %s — starting fresh", yaml_path, e)
+
+    # Merge updates
     for source_name, config in updated_configs.items():
         current_data[source_name] = config
-    
-    # Create backup
-    backup_path = yaml_path.with_suffix(f".yaml.backup.{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}")
-    yaml_path.rename(backup_path)
-    
-    # Write updated YAML
-    with open(yaml_path, "w") as f:
+
+    # Write atomically via a sibling temp file
+    tmp_path = yaml_path.with_suffix(".yaml.tmp")
+    with open(tmp_path, "w") as f:
         f.write("# Notion Databases Configuration\n")
         f.write("# Last updated: " + datetime.datetime.utcnow().isoformat() + "\n")
-        f.write("# \n")
+        f.write("# Written by notion_sync_schemas (update_config=True)\n")
+        f.write("# Location: ~/.config/kas-fastmcp/databases.yaml\n")
+        f.write("#\n")
         f.write("# Each database entry requires either:\n")
         f.write("#   - data_source_id (preferred for API 2025-09-03)\n")
         f.write("#   - database_id (will auto-resolve data_source_id)\n")
         f.write("#\n")
         f.write("# Optional fields:\n")
-        f.write("#   - title_property: Name of the title property (default: \"title\")\n")
+        f.write('#   - title_property: Name of the title property (default: "title")\n')
         f.write("#   - description: Human-readable description\n")
         f.write("#   - schema: Property definitions (synced from Notion API)\n")
         f.write("#   - last_sync: Last schema sync timestamp\n\n")
-        
+
         yaml.dump(current_data, f, default_flow_style=False, indent=2, sort_keys=False)
-    
-    print(f"Updated databases.yaml (backup saved to {backup_path.name})")
+
+    tmp_path.replace(yaml_path)
+    logger.info("Wrote updated config to %s", yaml_path)
     return True
 
 

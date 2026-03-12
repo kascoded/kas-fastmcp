@@ -5,12 +5,10 @@ Search, query, and discovery operations for Notion databases and pages.
 
 from typing import Optional, Dict, Any, List
 from notion_server.server import mcp
-from notion_server.core import NotionClient, SchemaManager
+from notion_server.core import PropertyFormatter
+from notion_server.deps import _client, _schema_manager
 
-
-# Initialize core modules
-_client = NotionClient()
-_schema_manager = SchemaManager(_client)
+_property_formatter = PropertyFormatter()
 
 
 @mcp.tool
@@ -59,19 +57,16 @@ async def notion_find_page_by_name(
 ) -> Dict[str, Any]:
     """
     Find the first page whose title property equals `page_name`.
-    
+
     Args:
         source_name: Name of the data source from config
         page_name: Exact title to search for
-        title_property: Name of the title property (default: "Name")
+        title_property: Name of the title property (default: "title")
     
     Returns:
         Compact object with page_id, title, properties, last_edited, and URL
         If not found, returns {"found": False}
     """
-    from notion_server.core import PropertyFormatter
-    _property_formatter = PropertyFormatter()
-    
     data_source_id = await _schema_manager.get_data_source_id(source_name)
 
     payload = {
@@ -140,42 +135,6 @@ async def notion_search(
     }
     
     return await _client.post("search", payload)
-
-
-@mcp.tool
-async def notion_list_databases() -> Dict[str, Any]:
-    """
-    List all accessible databases in the workspace.
-    In API 2025-09-03, databases contain data sources, so we search for data_sources.
-    
-    Returns:
-        List of data sources with IDs, titles, URLs, and parent database info
-    """
-    payload = {
-        "filter": {"property": "object", "value": "data_source"},
-        "page_size": 100
-    }
-    result = await _client.post("search", payload)
-    
-    # Format the response
-    data_sources = []
-    for ds in result.get("results", []):
-        title_array = ds.get("title", [])
-        title = title_array[0].get("plain_text", "Untitled") if title_array else "Untitled"
-        
-        ds_info = {
-            "id": ds.get("id"),
-            "title": title,
-            "url": ds.get("url"),
-            "parent": ds.get("parent", {}),
-        }
-        data_sources.append(ds_info)
-    
-    return {
-        "data_sources": data_sources,
-        "count": len(data_sources),
-        "note": "In API 2025-09-03, databases contain data sources. This lists accessible data sources.",
-    }
 
 
 @mcp.tool

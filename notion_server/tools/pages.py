@@ -5,13 +5,11 @@ CRUD operations for Notion pages and their properties.
 
 from typing import Optional, Dict, Any
 from notion_server.server import mcp
-from notion_server.core import NotionClient, SchemaManager, PropertyFormatter, BlockFormatter
+from notion_server.core import PropertyFormatter, BlockFormatter
 from notion_server.utils import PropertyValidator
+from notion_server.deps import _client, _schema_manager
 
 
-# Initialize core modules
-_client = NotionClient()
-_schema_manager = SchemaManager(_client)
 _property_formatter = PropertyFormatter()
 _block_formatter = BlockFormatter()
 
@@ -59,11 +57,9 @@ async def notion_get_data_source(source_name: str) -> Dict[str, Any]:
     Returns:
         Data source details including properties schema with types and options
     """
+    result = await _schema_manager.get_data_source_info(source_name)
     schema = await _schema_manager.get_schema(source_name)
-    data_source_id = await _schema_manager.get_data_source_id(source_name)
-    
-    result = await _client.get(f"data_sources/{data_source_id}")
-    
+
     title_array = result.get("title", [])
     title = title_array[0].get("plain_text", "Untitled") if title_array else "Untitled"
     
@@ -100,35 +96,20 @@ async def notion_create_item(
     Returns:
         Created page object with page_id, title, url, and created_time
     """
-    import sys
-    print(f"[DEBUG] notion_create_item called with source={source_name}", file=sys.stderr, flush=True)
-    # Validate properties against schema
-    import sys
-    print(f"[VALIDATION] Starting validation for source: {source_name}", file=sys.stderr)
-    print(f"[VALIDATION] Properties to validate: {list(properties.keys())}", file=sys.stderr)
-    
     try:
         schema = await _schema_manager.get_schema(source_name)
-        print(f"[VALIDATION] Schema fetched, has {len(schema)} properties", file=sys.stderr)
-        
         validator = PropertyValidator(schema)
         is_valid, errors = validator.validate_properties(properties)
-        
-        print(f"[VALIDATION] Validation result: valid={is_valid}, errors={len(errors)}", file=sys.stderr)
-        
         if not is_valid:
-            print(f"[VALIDATION] Raising validation error", file=sys.stderr)
             raise ValueError(
                 f"Property validation failed:\n" +
                 "\n".join(f"  • {error}" for error in errors)
             )
     except ValueError:
-        # Re-raise validation errors
-        print(f"[VALIDATION] Re-raising ValueError", file=sys.stderr)
         raise
-    except Exception as e:
-        # Log schema fetch errors but continue (don't block creation)
-        print(f"Warning: Schema validation skipped due to error: {e}", file=sys.stderr)
+    except Exception:
+        # Schema fetch errors don't block creation
+        pass
     
     payload: Dict[str, Any] = {
         "properties": properties or {},
@@ -161,21 +142,38 @@ async def notion_update_item(
     archived: Optional[bool] = None,
     icon: Optional[Dict[str, Any]] = None,
     cover: Optional[Dict[str, Any]] = None,
+    source_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Update an existing page's properties (and optionally archived/icon/cover).
-    Note: For property validation, you must fetch the page first to determine its source.
-    
+    Pass source_name to enable property validation against the database schema.
+
     Args:
         page_id: The page ID to update
         properties: Properties to update (partial update supported)
         archived: Archive or restore the page
         icon: Update page icon
         cover: Update page cover
-    
+        source_name: Optional config source name — enables schema validation when provided
+
     Returns:
         Updated page object with page_id, title, url, and confirmation
     """
+    if properties and source_name:
+        try:
+            schema = await _schema_manager.get_schema(source_name)
+            validator = PropertyValidator(schema)
+            is_valid, errors = validator.validate_properties(properties)
+            if not is_valid:
+                raise ValueError(
+                    f"Property validation failed:\n" +
+                    "\n".join(f"  • {error}" for error in errors)
+                )
+        except ValueError:
+            raise
+        except Exception:
+            pass
+
     payload: Dict[str, Any] = {}
     
     if properties:

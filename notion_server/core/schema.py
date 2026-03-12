@@ -4,22 +4,27 @@ Handles fetching and caching Notion database schemas.
 No state mutation - returns new objects.
 """
 
+import time
 from typing import Dict, Any, Optional
 from config import NotionConfig
+
+_SCHEMA_TTL = 3600  # seconds before a cached schema is considered stale
 
 
 class SchemaManager:
     """Manages database schemas and data source resolution."""
-    
+
     def __init__(self, client):
         """
         Initialize schema manager.
-        
+
         Args:
             client: NotionClient instance
         """
         self.client = client
         self._schema_cache: Dict[str, Dict[str, Any]] = {}
+        self._schema_cache_time: Dict[str, float] = {}
+        self._raw_cache: Dict[str, Dict[str, Any]] = {}  # Full data_source API response
         self._data_source_cache: Dict[str, str] = {}
     
     def get_source_config(self, source_name: str) -> Dict[str, Any]:
@@ -110,13 +115,15 @@ class SchemaManager:
         Returns:
             Properties schema dict
         """
-        # Check cache
+        # Check cache with TTL
         if source_name in self._schema_cache:
-            return self._schema_cache[source_name]
-        
+            if time.monotonic() - self._schema_cache_time[source_name] < _SCHEMA_TTL:
+                return self._schema_cache[source_name]
+
         # Fetch from API
         data_source_id = await self.get_data_source_id(source_name)
         result = await self.client.get(f"data_sources/{data_source_id}")
+        self._raw_cache[source_name] = result
         
         # Extract and format schema
         properties = result.get("properties", {})
@@ -141,20 +148,33 @@ class SchemaManager:
                 options = prop.get("status", {}).get("options", [])
                 schema[key]["options"] = [opt.get("name") for opt in options]
         
-        # Cache it
         self._schema_cache[source_name] = schema
+        self._schema_cache_time[source_name] = time.monotonic()
         return schema
-    
+
+    async def get_data_source_info(self, source_name: str) -> Dict[str, Any]:
+        """
+        Return the full data_source API response for a source.
+        Uses the raw cache populated by get_schema; fetches if not cached.
+        """
+        if source_name not in self._raw_cache:
+            await self.get_schema(source_name)
+        return self._raw_cache[source_name]
+
     def clear_cache(self, source_name: Optional[str] = None):
         """
         Clear cached schemas and data source IDs.
-        
+
         Args:
             source_name: Specific source to clear, or None for all
         """
         if source_name:
             self._schema_cache.pop(source_name, None)
+            self._schema_cache_time.pop(source_name, None)
+            self._raw_cache.pop(source_name, None)
             self._data_source_cache.pop(source_name, None)
         else:
             self._schema_cache.clear()
+            self._schema_cache_time.clear()
+            self._raw_cache.clear()
             self._data_source_cache.clear()

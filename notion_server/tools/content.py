@@ -3,15 +3,63 @@ Notion Content Tools
 Operations for reading and writing page content (blocks).
 """
 
+import logging
 from typing import Dict, Any
 from notion_server.server import mcp
-from notion_server.core import NotionClient, PropertyFormatter, BlockFormatter
+from notion_server.core import PropertyFormatter, BlockFormatter
+from notion_server.deps import _client
 
+logger = logging.getLogger(__name__)
 
-# Initialize core modules
-_client = NotionClient()
 _property_formatter = PropertyFormatter()
 _block_formatter = BlockFormatter()
+
+_MAX_BLOCK_PAGES = 100  # Maximum pagination iterations (~10 000 blocks at page_size=100)
+
+
+async def _get_all_blocks(page_id: str) -> list:
+    """Fetch all block children, following pagination cursors.
+
+    Caps at _MAX_BLOCK_PAGES iterations to prevent infinite loops.
+    Passes the pagination cursor as a proper query parameter rather than
+    appending it to the URL string.
+    """
+    blocks = []
+    endpoint = f"blocks/{page_id}/children"
+    params = None
+    iterations = 0
+
+    while True:
+        if iterations >= _MAX_BLOCK_PAGES:
+            logger.warning(
+                "blocks/%s/children: reached %d-page iteration cap; "
+                "returning %d blocks fetched so far",
+                page_id,
+                _MAX_BLOCK_PAGES,
+                len(blocks),
+            )
+            break
+
+        result = await _client.get(endpoint, params=params)
+        blocks.extend(result.get("results", []))
+        iterations += 1
+
+        if not result.get("has_more"):
+            break
+
+        cursor = result.get("next_cursor")
+        if not cursor:
+            logger.warning(
+                "blocks/%s/children: has_more=True but next_cursor is None "
+                "after %d iterations; stopping to avoid infinite loop",
+                page_id,
+                iterations,
+            )
+            break
+
+        params = {"start_cursor": cursor}
+
+    return blocks
 
 
 @mcp.tool
@@ -19,17 +67,16 @@ async def notion_get_page_content(page_id: str) -> Dict[str, Any]:
     """
     Get the content of a page as markdown.
     Useful for reading notes, documentation, etc.
-    
+
     Args:
         page_id: The page ID to read content from
-    
+
     Returns:
         Object with page_id, title, content in markdown format, and URL
     """
     page = await _client.get(f"pages/{page_id}")
-    blocks_result = await _client.get(f"blocks/{page_id}/children")
-    blocks = blocks_result.get("results", [])
-    
+    blocks = await _get_all_blocks(page_id)
+
     return {
         "page_id": page_id,
         "title": _property_formatter.extract_title(page.get("properties", {})),
