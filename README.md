@@ -160,8 +160,8 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 - `notion_query` - Query pages from a database
 - `notion_find_page_by_name` - Find page by exact title
 - `notion_search` - Workspace-wide search
-- `notion_list_databases` - List all accessible databases
 - `notion_list_data_sources` - List data sources for a database
+- `notion_discover_databases` - Discover all accessible databases
 
 #### Page Tools (`pages.py`)
 - `notion_get_page` - Get page with properties
@@ -225,18 +225,16 @@ my_database:
 Example:
 ```python
 from notion_server.server import mcp
-from notion_server.core import NotionClient
-
-_client = NotionClient()
+from notion_server.deps import _client  # shared singleton — do not instantiate a new one
 
 @mcp.tool
 async def my_new_tool(param: str) -> dict:
     """
     Tool description.
-    
+
     Args:
         param: Parameter description
-        
+
     Returns:
         Result description
     """
@@ -394,12 +392,14 @@ MIT
 
 ## Roadmap
 
-- [ ] Property validation integration with MCP (in progress)
+- [x] Property validation on create and update
 - [ ] Batch operations support
 - [ ] Advanced filtering DSL
 - [ ] Webhook support
 - [ ] Multi-workspace support
 - [ ] Enhanced markdown conversion (tables, callouts, etc.)
+
+See [CHANGELOG.md](CHANGELOG.md) for a full history of changes.
 
 ## Support
 
