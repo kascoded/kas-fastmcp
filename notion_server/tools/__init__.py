@@ -8,5 +8,6 @@ from . import query
 from . import pages
 from . import content
 from . import schema_sync
+from . import resources
 
-__all__ = ["query", "pages", "content", "schema_sync"]
+__all__ = ["query", "pages", "content", "schema_sync", "resources"]

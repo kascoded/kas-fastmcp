@@ -237,90 +237,89 @@ class BlockFormatter:
     def from_markdown(markdown: str) -> List[Dict[str, Any]]:
         """
         Convert markdown to Notion blocks.
-        Basic implementation - handles common formats.
-        
+        Handles headings, lists, quotes, to-dos, dividers, and fenced code blocks.
+
         Args:
             markdown: Markdown string
-            
+
         Returns:
             List of Notion block objects
         """
+        def _rt(content: str) -> List[Dict[str, Any]]:
+            return [{"type": "text", "text": {"content": content}}]
+
         blocks = []
         lines = markdown.split("\n")
-        
-        for line in lines:
-            line = line.strip()
+
+        in_code = False
+        code_lang = ""
+        code_lines: List[str] = []
+
+        for raw_line in lines:
+            line = raw_line.strip()
+
+            # --- Inside a fenced code block ---
+            if in_code:
+                if line == "```":
+                    blocks.append({
+                        "object": "block",
+                        "type": "code",
+                        "code": {
+                            "rich_text": _rt("\n".join(code_lines)),
+                            "language": code_lang or "plain text",
+                        },
+                    })
+                    in_code = False
+                    code_lines = []
+                    code_lang = ""
+                else:
+                    code_lines.append(raw_line)  # preserve indentation
+                continue
+
+            # --- Fence open ---
+            if line.startswith("```"):
+                in_code = True
+                code_lang = line[3:].strip()
+                code_lines = []
+                continue
+
             if not line:
                 continue
-            
-            # Headings
+
             if line.startswith("# "):
-                blocks.append({
-                    "object": "block",
-                    "type": "heading_1",
-                    "heading_1": {
-                        "rich_text": [{"type": "text", "text": {"content": line[2:]}}]
-                    },
-                })
-                
+                blocks.append({"object": "block", "type": "heading_1",
+                                "heading_1": {"rich_text": _rt(line[2:])}})
             elif line.startswith("## "):
-                blocks.append({
-                    "object": "block",
-                    "type": "heading_2",
-                    "heading_2": {
-                        "rich_text": [{"type": "text", "text": {"content": line[3:]}}]
-                    },
-                })
-                
+                blocks.append({"object": "block", "type": "heading_2",
+                                "heading_2": {"rich_text": _rt(line[3:])}})
             elif line.startswith("### "):
-                blocks.append({
-                    "object": "block",
-                    "type": "heading_3",
-                    "heading_3": {
-                        "rich_text": [{"type": "text", "text": {"content": line[4:]}}]
-                    },
-                })
-                
-            # Lists
+                blocks.append({"object": "block", "type": "heading_3",
+                                "heading_3": {"rich_text": _rt(line[4:])}})
             elif line.startswith("- ") or line.startswith("* "):
-                blocks.append({
-                    "object": "block",
-                    "type": "bulleted_list_item",
-                    "bulleted_list_item": {
-                        "rich_text": [{"type": "text", "text": {"content": line[2:]}}]
-                    },
-                })
-                
+                blocks.append({"object": "block", "type": "bulleted_list_item",
+                                "bulleted_list_item": {"rich_text": _rt(line[2:])}})
             elif line.startswith("> "):
-                blocks.append({
-                    "object": "block",
-                    "type": "quote",
-                    "quote": {
-                        "rich_text": [{"type": "text", "text": {"content": line[2:]}}]
-                    },
-                })
-                
-            # To-do
+                blocks.append({"object": "block", "type": "quote",
+                                "quote": {"rich_text": _rt(line[2:])}})
             elif line.startswith("[ ] ") or line.startswith("[x] "):
-                checked = line.startswith("[x]")
-                content = line[4:]
-                blocks.append({
-                    "object": "block",
-                    "type": "to_do",
-                    "to_do": {
-                        "rich_text": [{"type": "text", "text": {"content": content}}],
-                        "checked": checked,
-                    },
-                })
-                
-            # Paragraph (default)
+                blocks.append({"object": "block", "type": "to_do",
+                                "to_do": {"rich_text": _rt(line[4:]),
+                                          "checked": line.startswith("[x]")}})
+            elif line == "---":
+                blocks.append({"object": "block", "type": "divider", "divider": {}})
             else:
-                blocks.append({
-                    "object": "block",
-                    "type": "paragraph",
-                    "paragraph": {
-                        "rich_text": [{"type": "text", "text": {"content": line}}]
-                    },
-                })
-        
+                blocks.append({"object": "block", "type": "paragraph",
+                                "paragraph": {"rich_text": _rt(line)}})
+
+        # Flush unclosed fence as a code block rather than silently dropping it
+        if in_code and code_lines:
+            blocks.append({
+                "object": "block",
+                "type": "code",
+                "code": {
+                    "rich_text": _rt("\n".join(code_lines)),
+                    "language": code_lang or "plain text",
+                },
+            })
+
         return blocks

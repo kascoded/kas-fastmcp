@@ -735,22 +735,3 @@ media_library:
       type: title
       id: title
   last_sync: '2026-01-23T07:48:27.674155'
-  
-reading_list:
-  data_source_id: 1348645d-6355-8137-887f-000b61417be2
-  title_property: title
-  description: Reading list and book management
-  schema:
-    Cover:
-      type: files
-      id: 4m%5E!
-    Author:
-      type: rich_text
-      id: 7YKj
-    URL:
-      type: url
-      id: '%3A_P%3E'
-    Name:
-      type: title
-      id: title
-  last_sync: '2026-01-23T07:48:28.129325'

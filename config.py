@@ -127,10 +127,8 @@ class NotionConfig:
     API_VERSION = os.getenv("NOTION_API_VERSION", "2025-09-03")
     
     # Load databases from YAML first, fallback to environment variables
-    DATABASES: Dict[str, Dict[str, Any]] = _load_databases_from_yaml() or _load_databases_from_env() or {}
-    
-    # Track which source was used (for debugging)
-    _yaml_result = _load_databases_from_yaml()
+    _yaml_result: Dict[str, Dict[str, Any]] = _load_databases_from_yaml() or {}
+    DATABASES: Dict[str, Dict[str, Any]] = _yaml_result or _load_databases_from_env() or {}
     _config_source: str = "yaml" if _yaml_result else ("env" if DATABASES else "none")
     
     @classmethod
@@ -281,12 +279,7 @@ class NotionConfig:
         load_dotenv(override=True)
         cls.TOKEN = os.getenv("NOTION_TOKEN")
         cls.API_VERSION = os.getenv("NOTION_API_VERSION", "2025-09-03")
-        cls.DATABASES = _load_databases_from_yaml() or _load_databases_from_env() or {}
-        
-        # Determine config source
-        if _load_databases_from_yaml():
-            cls._config_source = "yaml"
-        elif cls.DATABASES:
-            cls._config_source = "env"
-        else:
-            cls._config_source = "none"
+        yaml_result = _load_databases_from_yaml() or {}
+        cls.DATABASES = yaml_result or _load_databases_from_env() or {}
+        cls._yaml_result = yaml_result
+        cls._config_source = "yaml" if yaml_result else ("env" if cls.DATABASES else "none")

@@ -3,15 +3,14 @@ Notion Page Tools
 CRUD operations for Notion pages and their properties.
 """
 
+import logging
 from typing import Optional, Dict, Any
 from notion_server.server import mcp
-from notion_server.core import PropertyFormatter, BlockFormatter
 from notion_server.utils import PropertyValidator
-from notion_server.deps import _client, _schema_manager
+from notion_server.deps import _client, _schema_manager, _property_formatter, _block_formatter
+from notion_server.tools.content import _get_all_blocks
 
-
-_property_formatter = PropertyFormatter()
-_block_formatter = BlockFormatter()
+logger = logging.getLogger(__name__)
 
 
 @mcp.tool
@@ -39,8 +38,7 @@ async def notion_get_page(page_id: str, include_content: bool = False) -> Dict[s
     }
     
     if include_content:
-        blocks_result = await _client.get(f"blocks/{page_id}/children")
-        blocks = blocks_result.get("results", [])
+        blocks = await _get_all_blocks(page_id)
         result["content_markdown"] = _block_formatter.to_markdown(blocks)
     
     return result
@@ -107,9 +105,9 @@ async def notion_create_item(
             )
     except ValueError:
         raise
-    except Exception:
-        # Schema fetch errors don't block creation
-        pass
+    except Exception as e:
+        # Schema fetch errors don't block creation, but log so it's observable
+        logger.warning("Schema fetch failed for '%s', skipping validation: %s", source_name, e)
     
     payload: Dict[str, Any] = {
         "properties": properties or {},
@@ -171,8 +169,8 @@ async def notion_update_item(
                 )
         except ValueError:
             raise
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Schema fetch failed for '%s', skipping validation: %s", source_name, e)
 
     payload: Dict[str, Any] = {}
     

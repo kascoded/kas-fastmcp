@@ -56,24 +56,18 @@ git clone <your-repo-url>
 cd kas-fastmcp
 ```
 
-2. **Create virtual environment**
+2. **Install dependencies**
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv sync
 ```
 
-3. **Install dependencies**
-```bash
-pip install -r requirements.txt
-```
-
-4. **Configure environment**
+3. **Configure environment**
 ```bash
 cp .env.example .env
 # Edit .env and add your NOTION_TOKEN
 ```
 
-5. **Configure databases**
+4. **Configure databases**
 ```bash
 cp databases.yaml.example databases.yaml
 # Edit databases.yaml and add your database configurations
@@ -154,7 +148,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-### Available Tools
+### Available Tools (14 total)
 
 #### Query Tools (`query.py`)
 - `notion_query` - Query pages from a database
@@ -164,7 +158,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 - `notion_discover_databases` - Discover all accessible databases
 
 #### Page Tools (`pages.py`)
-- `notion_get_page` - Get page with properties
+- `notion_get_page` - Get page with properties (fully paginated when `include_content=True`)
 - `notion_get_data_source` - Get database schema
 - `notion_create_item` - Create new page
 - `notion_update_item` - Update page properties
@@ -172,6 +166,15 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 #### Content Tools (`content.py`)
 - `notion_get_page_content` - Get page content as markdown
 - `notion_append_content` - Append blocks to page
+
+#### Schema Tools (`schema_sync.py`)
+- `notion_sync_schemas` - Sync schemas from Notion and optionally update config
+- `notion_validate_config` - Validate current database configuration
+
+### Available Resources
+
+- `notion://databases` - Lists all configured databases as JSON
+- `notion://databases/{source_name}/schema` - Returns the cached schema for a specific database
 
 ## Testing
 

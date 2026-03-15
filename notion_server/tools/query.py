@@ -5,10 +5,8 @@ Search, query, and discovery operations for Notion databases and pages.
 
 from typing import Optional, Dict, Any, List
 from notion_server.server import mcp
-from notion_server.core import PropertyFormatter
-from notion_server.deps import _client, _schema_manager
-
-_property_formatter = PropertyFormatter()
+from notion_server.deps import _client, _schema_manager, _property_formatter
+from config import NotionConfig
 
 
 @mcp.tool
@@ -53,7 +51,7 @@ async def notion_query(
 async def notion_find_page_by_name(
     source_name: str,
     page_name: str,
-    title_property: str = "title",
+    title_property: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Find the first page whose title property equals `page_name`.
@@ -61,13 +59,16 @@ async def notion_find_page_by_name(
     Args:
         source_name: Name of the data source from config
         page_name: Exact title to search for
-        title_property: Name of the title property (default: "title")
-    
+        title_property: Name of the title property — defaults to the value configured
+                        for this database in databases.yaml (usually "title")
+
     Returns:
         Compact object with page_id, title, properties, last_edited, and URL
         If not found, returns {"found": False}
     """
     data_source_id = await _schema_manager.get_data_source_id(source_name)
+    if title_property is None:
+        title_property = NotionConfig.get_title_property(source_name)
 
     payload = {
         "filter": {

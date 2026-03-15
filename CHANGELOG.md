@@ -6,6 +6,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.2.0] - 2026-03-14
+
+### Fixed
+
+- **`NotionClient` shared httpx connection pool** — Previously created a new `httpx.AsyncClient` per request; now a single client is created in `__init__` and reused across all requests for proper connection pooling.
+- **Code fence parsing in `BlockFormatter.from_markdown`** — Fenced code blocks were not parsed and fell through as plain paragraphs. Now detected with a state machine (`in_code` flag), preserving indentation and mapping the language tag. Unterminated fences are flushed at EOF.
+- **Async double-checked locking in `SchemaManager`** — `get_schema()` and `get_data_source_id()` now use `asyncio.Lock` with double-checked locking to prevent redundant concurrent fetches.
+- **`notion_find_page_by_name` uses configured `title_property`** — Was hardcoded to `"title"`; now reads `NotionConfig.get_title_property(source_name)`.
+- **`notion_discover_databases` filter corrected** — Search filter was broken (empty results). Now uses `{"property": "object", "value": "database"}` correctly.
+- **`notion_get_page(include_content=True)` fully paginated** — Now calls `_get_all_blocks()` (imported from `content.py`) instead of a single non-paginated block fetch.
+- **`reading_list` database removed** — Removed from `databases.yaml` (database does not exist). Database count is now 12.
+
+### Added
+
+- **`NotionClient.close()`** — `async def close()` calls `self._http.aclose()` for graceful shutdown in tests and direct lifecycle management.
+- **MCP resource endpoints** — New `notion_server/tools/resources.py` registers two resources:
+  - `notion://databases` — lists all configured databases as JSON
+  - `notion://databases/{source_name}/schema` — returns the cached schema for a specific database
+
+---
+
 ## [2.1.0] - 2026-03-12
 
 ### Fixed

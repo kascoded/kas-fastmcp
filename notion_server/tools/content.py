@@ -6,13 +6,9 @@ Operations for reading and writing page content (blocks).
 import logging
 from typing import Dict, Any
 from notion_server.server import mcp
-from notion_server.core import PropertyFormatter, BlockFormatter
-from notion_server.deps import _client
+from notion_server.deps import _client, _property_formatter, _block_formatter
 
 logger = logging.getLogger(__name__)
-
-_property_formatter = PropertyFormatter()
-_block_formatter = BlockFormatter()
 
 _MAX_BLOCK_PAGES = 100  # Maximum pagination iterations (~10 000 blocks at page_size=100)
 

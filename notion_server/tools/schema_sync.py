@@ -4,6 +4,8 @@ Tools for syncing database schemas and configurations between Notion and local c
 """
 
 import logging
+import os
+import re
 from typing import Dict, Any, List, Optional
 from notion_server.server import mcp
 from notion_server.deps import _client, _schema_manager
@@ -114,40 +116,42 @@ async def notion_discover_databases() -> Dict[str, Any]:
     Returns:
         List of discovered databases with their IDs and basic information
     """
-    # First get all data sources
+    # Search for databases — the Notion Search API only accepts "page" or "database"
+    # as valid object filter values; "data_source" is not a valid value and returns nothing.
     payload = {
-        "filter": {"property": "object", "value": "data_source"},
-        "page_size": 100
+        "filter": {"property": "object", "value": "database"},
+        "page_size": 100,
     }
     result = await _client.post("search", payload)
-    
+
     discovered = []
     configured_ids = set()
-    
+
     # Get currently configured database and data source IDs
     for db_config in NotionConfig.DATABASES.values():
         if db_config.get("database_id"):
             configured_ids.add(db_config["database_id"])
         if db_config.get("data_source_id"):
             configured_ids.add(db_config["data_source_id"])
-    
-    for ds in result.get("results", []):
-        title_array = ds.get("title", [])
+
+    for db in result.get("results", []):
+        title_array = db.get("title", [])
         title = title_array[0].get("plain_text", "Untitled") if title_array else "Untitled"
-        
-        ds_id = ds.get("id")
-        parent = ds.get("parent", {})
-        db_id = parent.get("database_id") if parent.get("type") == "database" else None
-        
-        is_configured = ds_id in configured_ids or (db_id and db_id in configured_ids)
-        
+
+        db_id = db.get("id")
+        # data_source_id is nested under the database object in API 2025-09-03
+        data_sources = db.get("data_sources", [])
+        ds_id = data_sources[0].get("id") if data_sources else None
+
+        is_configured = (db_id and db_id in configured_ids) or (ds_id and ds_id in configured_ids)
+
         discovered.append({
             "data_source_id": ds_id,
             "database_id": db_id,
             "title": title,
-            "url": ds.get("url"),
+            "url": db.get("url"),
             "is_configured": is_configured,
-            "suggested_name": _suggest_config_name(title)
+            "suggested_name": _suggest_config_name(title),
         })
     
     return {
@@ -250,9 +254,9 @@ def _update_databases_yaml(updated_configs: Dict[str, Dict[str, Any]]) -> bool:
     for source_name, config in updated_configs.items():
         current_data[source_name] = config
 
-    # Write atomically via a sibling temp file
+    # Write atomically via a sibling temp file, owner-readable only (0o600)
     tmp_path = yaml_path.with_suffix(".yaml.tmp")
-    with open(tmp_path, "w") as f:
+    with open(tmp_path, "w", opener=lambda path, flags: os.open(path, flags, 0o600)) as f:
         f.write("# Notion Databases Configuration\n")
         f.write("# Last updated: " + datetime.datetime.utcnow().isoformat() + "\n")
         f.write("# Written by notion_sync_schemas (update_config=True)\n")
@@ -285,7 +289,6 @@ def _suggest_config_name(title: str) -> str:
     Returns:
         Suggested config name (lowercase, underscores)
     """
-    import re
     # Convert to lowercase and replace spaces/special chars with underscores
     name = re.sub(r'[^a-zA-Z0-9_]', '_', title.lower())
     # Remove multiple consecutive underscores
