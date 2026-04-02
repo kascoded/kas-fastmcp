@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.3.0] - 2026-04-02
+
+### Added
+
+- **Persistent Disk-Based Schema Caching** — Implemented a local JSON cache at `~/.cache/kas-fastmcp/schema_cache.json`. Database schemas and data source IDs are now persisted across server restarts, significantly reducing cold-start latency and minimizing Notion API calls.
+- **`notion_replace_content` tool** — New tool that clears all existing blocks on a page and appends new Markdown content, enabling "overwrite" functionality for dynamic pages.
+- **`is_default` database flag** — Added support for marking a database as the default in `databases.yaml`. This flag is now exposed via the `notion://databases` resource to assist AI agents in selecting the primary workspace.
+
+### Fixed
+
+- **Automatic 429 Rate-Limit Retries** — Updated `NotionClient` to automatically catch `429 Too Many Requests` errors and retry using exponential backoff (respecting the `Retry-After` header when present).
+- **Graceful Shutdown Loop** — Replaced `asyncio.run()` in the `atexit` handler with `asyncio.new_event_loop()` to ensure a fresh, safe event loop is available during shutdown regardless of the previous loop's state.
+
+---
+
 ## [2.2.0] - 2026-03-14
 
 ### Fixed

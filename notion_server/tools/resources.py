@@ -32,6 +32,7 @@ def list_databases() -> str:
         databases[source_name] = {
             "description": config.get("description", ""),
             "title_property": config.get("title_property", "title"),
+            "is_default": config.get("is_default", False),
             "has_database_id": bool(config.get("database_id")),
             "has_data_source_id": bool(config.get("data_source_id")),
             "has_schema_cached": NotionConfig.has_schema(source_name),

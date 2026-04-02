@@ -182,28 +182,34 @@ class BlockFormatter:
             Markdown string
         """
         lines = []
-        
+        _num_list_counter = 0
+
         for block in blocks:
             block_type = block.get("type")
             text = BlockFormatter.extract_text(block)
-            
+
+            if block_type == "numbered_list_item":
+                _num_list_counter += 1
+            else:
+                _num_list_counter = 0
+
             if block_type == "paragraph":
                 lines.append(text)
-                
+
             elif block_type == "heading_1":
                 lines.append(f"# {text}")
-                
+
             elif block_type == "heading_2":
                 lines.append(f"## {text}")
-                
+
             elif block_type == "heading_3":
                 lines.append(f"### {text}")
-                
+
             elif block_type == "bulleted_list_item":
                 lines.append(f"- {text}")
-                
+
             elif block_type == "numbered_list_item":
-                lines.append(f"1. {text}")
+                lines.append(f"{_num_list_counter}. {text}")
                 
             elif block_type == "to_do":
                 checked = block.get("to_do", {}).get("checked", False)

@@ -6,14 +6,22 @@ No state mutation - returns new objects.
 
 import asyncio
 import time
+import json
+import os
+import logging
+from pathlib import Path
 from typing import Dict, Any, Optional
 from config import NotionConfig
 
+logger = logging.getLogger(__name__)
+
 _SCHEMA_TTL = 3600  # seconds before a cached schema is considered stale
+_CACHE_DIR = Path.home() / ".cache" / "kas-fastmcp"
+_CACHE_FILE = _CACHE_DIR / "schema_cache.json"
 
 
 class SchemaManager:
-    """Manages database schemas and data source resolution."""
+    """Manages database schemas and data source resolution with disk persistence."""
 
     def __init__(self, client):
         """
@@ -29,6 +37,46 @@ class SchemaManager:
         self._data_source_cache: Dict[str, str] = {}
         self._schema_locks: Dict[str, asyncio.Lock] = {}
         self._ds_locks: Dict[str, asyncio.Lock] = {}
+        
+        # Load cache from disk if available
+        self._load_from_disk()
+
+    def _load_from_disk(self):
+        """Load cached data from disk."""
+        if not _CACHE_FILE.exists():
+            return
+
+        try:
+            with open(_CACHE_FILE, "r") as f:
+                data = json.load(f)
+                self._schema_cache = data.get("schemas", {})
+                self._data_source_cache = data.get("data_source_ids", {})
+                # We use real time for the TTL, but since we restarted, 
+                # we'll mark them as "just fetched" or let them expire naturally.
+                # For safety, we'll mark them as fetched 'now' but they will expire in 1h.
+                now = time.monotonic()
+                for source in self._schema_cache:
+                    self._schema_cache_time[source] = now
+            logger.info("Loaded schema cache from %s", _CACHE_FILE)
+        except Exception as e:
+            logger.warning("Failed to load schema cache: %s", e)
+
+    def _save_to_disk(self):
+        """Save current cache to disk."""
+        try:
+            _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            data = {
+                "schemas": self._schema_cache,
+                "data_source_ids": self._data_source_cache,
+                "updated_at": time.time()
+            }
+            # Write to temp file then move for atomicity
+            tmp_file = _CACHE_FILE.with_suffix(".tmp")
+            with open(tmp_file, "w") as f:
+                json.dump(data, f, indent=2)
+            tmp_file.replace(_CACHE_FILE)
+        except Exception as e:
+            logger.error("Failed to save schema cache: %s", e)
 
     def _schema_lock(self, source_name: str) -> asyncio.Lock:
         if source_name not in self._schema_locks:
@@ -118,6 +166,7 @@ class SchemaManager:
                 raise RuntimeError("Data source missing ID in API response")
 
             self._data_source_cache[source_name] = ds_id
+            self._save_to_disk()
             return ds_id
     
     async def get_schema(self, source_name: str) -> Dict[str, Any]:
@@ -171,6 +220,7 @@ class SchemaManager:
 
             self._schema_cache[source_name] = schema
             self._schema_cache_time[source_name] = time.monotonic()
+            self._save_to_disk()
             return schema
 
     async def get_data_source_info(self, source_name: str) -> Dict[str, Any]:
@@ -200,3 +250,5 @@ class SchemaManager:
             self._schema_cache_time.clear()
             self._raw_cache.clear()
             self._data_source_cache.clear()
+
+        self._save_to_disk()

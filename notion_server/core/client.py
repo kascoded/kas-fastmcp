@@ -58,9 +58,10 @@ class NotionClient:
         payload: Optional[Dict[str, Any]] = None,
         timeout: int = 45,
         params: Optional[Dict[str, Any]] = None,
+        max_retries: int = 3,
     ) -> Dict[str, Any]:
         """
-        Make async HTTP request to Notion API.
+        Make async HTTP request to Notion API with automatic retries for rate limits.
 
         Args:
             method: HTTP method (GET, POST, PATCH, etc.)
@@ -68,61 +69,76 @@ class NotionClient:
             payload: Request body (for POST/PATCH)
             timeout: Request timeout in seconds
             params: Query string parameters (for GET)
+            max_retries: Maximum number of retries for 429 errors
 
         Returns:
             JSON response from Notion API
-
-        Raises:
-            RuntimeError: On HTTP errors with helpful messages
         """
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
+        retry_count = 0
+        backoff_base = 1.0  # seconds
 
-        try:
-            response = await self._http.request(
-                method=method,
-                url=url,
-                headers=self._headers(),
-                json=payload,
-                params=params,
-                timeout=timeout,
-            )
-            response.raise_for_status()
-            return response.json()
+        while True:
+            try:
+                response = await self._http.request(
+                    method=method,
+                    url=url,
+                    headers=self._headers(),
+                    json=payload,
+                    params=params,
+                    timeout=timeout,
+                )
+                response.raise_for_status()
+                return response.json()
 
-        except httpx.HTTPStatusError as e:
-            status = e.response.status_code
-            error_body = e.response.text
+            except httpx.HTTPStatusError as e:
+                status = e.response.status_code
+                error_body = e.response.text
 
-            if status == 401:
-                raise RuntimeError(
-                    f"Authentication failed (401).\n"
-                    f"Verify:\n"
-                    f"  1. Token is valid\n"
-                    f"  2. Integration has access to the resource\n"
-                    f"Error: {error_body}"
-                )
-            elif status == 404:
-                raise RuntimeError(
-                    f"Resource not found (404).\n"
-                    f"Check:\n"
-                    f"  1. Database/page ID is correct\n"
-                    f"  2. Integration has access\n"
-                    f"Error: {error_body}"
-                )
-            elif status == 400:
-                raise RuntimeError(
-                    f"Invalid request (400).\n"
-                    f"Check request parameters.\n"
-                    f"Error: {error_body}"
-                )
-            elif status == 429:
-                raise RuntimeError(
-                    f"Rate limit exceeded (429).\n"
-                    f"Wait before retrying.\n"
-                    f"Error: {error_body}"
-                )
-            else:
-                raise RuntimeError(f"Notion API error ({status}): {error_body}")
+                if status == 429 and retry_count < max_retries:
+                    retry_count += 1
+                    # Notion usually sends 'Retry-After' in seconds
+                    retry_after = e.response.headers.get("Retry-After")
+                    wait_time = float(retry_after) if retry_after else (backoff_base * (2 ** (retry_count - 1)))
+                    
+                    logger.warning(
+                        "Rate limit (429) hit for %s. Retrying in %.2fs (attempt %d/%d)...",
+                        endpoint, wait_time, retry_count, max_retries
+                    )
+                    import asyncio
+                    await asyncio.sleep(wait_time)
+                    continue
+
+                if status == 401:
+                    raise RuntimeError(
+                        f"Authentication failed (401).\n"
+                        f"Verify:\n"
+                        f"  1. Token is valid\n"
+                        f"  2. Integration has access to the resource\n"
+                        f"Error: {error_body}"
+                    )
+                elif status == 404:
+                    raise RuntimeError(
+                        f"Resource not found (404).\n"
+                        f"Check:\n"
+                        f"  1. Database/page ID is correct\n"
+                        f"  2. Integration has access\n"
+                        f"Error: {error_body}"
+                    )
+                elif status == 400:
+                    raise RuntimeError(
+                        f"Invalid request (400).\n"
+                        f"Check request parameters.\n"
+                        f"Error: {error_body}"
+                    )
+                elif status == 429:
+                    raise RuntimeError(
+                        f"Rate limit exceeded (429).\n"
+                        f"Wait before retrying.\n"
+                        f"Error: {error_body}"
+                    )
+                else:
+                    raise RuntimeError(f"Notion API error ({status}): {error_body}")
 
         except httpx.TimeoutException:
             raise RuntimeError(f"Request timed out after {timeout}s")

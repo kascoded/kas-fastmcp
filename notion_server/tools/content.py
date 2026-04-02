@@ -108,3 +108,44 @@ async def notion_append_content(
         "blocks_added": len(blocks),
         "url": f"https://www.notion.so/{page_id.replace('-', '')}",
     }
+
+
+@mcp.tool
+async def notion_replace_content(
+    page_id: str,
+    content_markdown: str,
+) -> Dict[str, Any]:
+    """
+    Replace ALL content blocks on a page with new markdown content.
+    This works by fetching all existing block IDs, deleting them, and then appending new ones.
+    
+    Args:
+        page_id: The page to update
+        content_markdown: New markdown content
+    
+    Returns:
+        Confirmation with page_id and number of new blocks added
+    """
+    # 1. Get all existing blocks
+    existing_blocks = await _get_all_blocks(page_id)
+    
+    # 2. Delete all existing blocks (can be done in parallel or sequence)
+    # Note: Notion API requires deleting each block individually
+    for block in existing_blocks:
+        block_id = block.get("id")
+        if block_id:
+            await _client.delete(f"blocks/{block_id}")
+            
+    # 3. Append new blocks
+    blocks = _block_formatter.from_markdown(content_markdown)
+    if blocks:
+        payload = {"children": blocks}
+        await _client.patch(f"blocks/{page_id}/children", payload)
+    
+    return {
+        "page_id": page_id,
+        "replaced": True,
+        "blocks_deleted": len(existing_blocks),
+        "blocks_added": len(blocks),
+        "url": f"https://www.notion.so/{page_id.replace('-', '')}",
+    }

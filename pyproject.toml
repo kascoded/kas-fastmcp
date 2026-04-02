@@ -3,7 +3,7 @@ name = "kas-fastmcp"
 version = "0.1.0"
 description = "Kas MCP Server — modular AI and Notion assistant tools."
 readme = "README.md"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.12"
 authors = [
     { name = "Miras Kasymkhan", email = "miras@kascurated.com" }
 ]

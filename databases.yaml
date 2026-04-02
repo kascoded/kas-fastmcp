@@ -14,6 +14,7 @@
 zettelkasten:
   data_source_id: 1d58645d-6355-8021-8111-000b41f7d430
   database_id: 1d58645d635580cc903acb164bb969b3
+  is_default: true
   title_property: title
   description: Personal knowledge management system
   schema:
@@ -32,8 +33,6 @@ zettelkasten:
       - Quick Capture
       - Fleeting
       - Script
-      - Invalid Type That Doesnt Exist
-      - Not A Valid Option
     tags:
       type: multi_select
       id: ChlR
