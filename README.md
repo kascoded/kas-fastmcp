@@ -16,20 +16,23 @@ A production-grade Model Context Protocol (MCP) server for Notion, providing com
 
 ```
 kas-fastmcp/
-├── main.py                 # FastMCP server entry point
-├── config.py              # Configuration management
-├── notion_server/         # Core MCP server package
-│   ├── core/             # Business logic (testable, reusable)
-│   │   ├── client.py     # HTTP client wrapper
-│   ├── formatters.py       # Property & block formatting
-│   └── schema.py           # Schema fetching & caching
-├── tools/                   # MCP tools (thin layer)
-│   ├── query.py            # Search & discovery operations
-│   ├── pages.py            # CRUD operations
-│   └── content.py          # Content/blocks operations
-├── utils/                   # Validators & helpers
-│   └── validators.py       # Property validation
-└── server.py               # FastMCP instance
+├── main.py                        # Entry point
+├── config.py                      # NotionConfig, loads databases.yaml
+├── notion_server/
+│   ├── server.py                  # FastMCP("KasNotionMCP") instance
+│   ├── deps.py                    # Shared NotionClient + SchemaManager singletons
+│   ├── core/
+│   │   ├── client.py              # NotionClient (httpx wrapper, 429 retry, connection pool)
+│   │   ├── schema.py              # SchemaManager (10-min TTL, disk cache)
+│   │   └── formatters.py          # PropertyFormatter, BlockFormatter (markdown <-> blocks)
+│   ├── tools/
+│   │   ├── query.py               # notion_query, notion_find_page_by_name, notion_search, notion_list_data_sources, notion_discover_databases
+│   │   ├── pages.py               # notion_get_page, notion_get_data_source, notion_create_item, notion_update_item
+│   │   ├── content.py             # notion_get_page_content, notion_append_content, notion_replace_content
+│   │   └── schema_sync.py         # notion_sync_schemas, notion_validate_config
+│   └── utils/
+│       └── validators.py          # PropertyValidator
+└── databases.yaml                 # Database configuration
 ```
 
 ### Design Principles
@@ -148,7 +151,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-### Available Tools (14 total)
+### Available Tools (15 total)
 
 #### Query Tools (`query.py`)
 - `notion_query` - Query pages from a database
@@ -166,6 +169,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 #### Content Tools (`content.py`)
 - `notion_get_page_content` - Get page content as markdown
 - `notion_append_content` - Append blocks to page
+- `notion_replace_content` - Clear all blocks on a page and write new markdown content
 
 #### Schema Tools (`schema_sync.py`)
 - `notion_sync_schemas` - Sync schemas from Notion and optionally update config
@@ -393,16 +397,7 @@ MIT
 - Uses Notion API 2025-09-03
 - Developed for AI-powered productivity workflows
 
-## Roadmap
-
-- [x] Property validation on create and update
-- [ ] Batch operations support
-- [ ] Advanced filtering DSL
-- [ ] Webhook support
-- [ ] Multi-workspace support
-- [ ] Enhanced markdown conversion (tables, callouts, etc.)
-
-See [CHANGELOG.md](CHANGELOG.md) for a full history of changes.
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## Support
 

@@ -15,7 +15,7 @@ from config import NotionConfig
 
 logger = logging.getLogger(__name__)
 
-_SCHEMA_TTL = 3600  # seconds before a cached schema is considered stale
+_SCHEMA_TTL = 600  # seconds before a cached schema is considered stale (10 min)
 _CACHE_DIR = Path.home() / ".cache" / "kas-fastmcp"
 _CACHE_FILE = _CACHE_DIR / "schema_cache.json"
 
@@ -42,33 +42,56 @@ class SchemaManager:
         self._load_from_disk()
 
     def _load_from_disk(self):
-        """Load cached data from disk."""
+        """Load cached data from disk, restoring correct TTL from stored wall-clock timestamps."""
         if not _CACHE_FILE.exists():
             return
 
         try:
             with open(_CACHE_FILE, "r") as f:
                 data = json.load(f)
-                self._schema_cache = data.get("schemas", {})
-                self._data_source_cache = data.get("data_source_ids", {})
-                # We use real time for the TTL, but since we restarted, 
-                # we'll mark them as "just fetched" or let them expire naturally.
-                # For safety, we'll mark them as fetched 'now' but they will expire in 1h.
-                now = time.monotonic()
-                for source in self._schema_cache:
-                    self._schema_cache_time[source] = now
-            logger.info("Loaded schema cache from %s", _CACHE_FILE)
+
+            schemas = data.get("schemas", {})
+            fetch_times = data.get("fetch_times", {})  # wall-clock time.time() values
+            now_wall = time.time()
+            now_mono = time.monotonic()
+
+            for source, schema in schemas.items():
+                stored_wall = fetch_times.get(source)
+                if stored_wall is None:
+                    # No timestamp recorded — treat as already expired (don't load)
+                    continue
+                elapsed = now_wall - stored_wall
+                if elapsed >= _SCHEMA_TTL:
+                    # Schema stale before we even started — skip it, force fresh fetch
+                    logger.debug("Skipping stale disk-cached schema for '%s' (%.0fs old)", source, elapsed)
+                    continue
+                self._schema_cache[source] = schema
+                # Rebase onto monotonic clock so TTL check works correctly
+                self._schema_cache_time[source] = now_mono - elapsed
+
+            self._data_source_cache = data.get("data_source_ids", {})
+            loaded = list(self._schema_cache.keys())
+            if loaded:
+                logger.info("Loaded schema cache from %s (sources: %s)", _CACHE_FILE, loaded)
         except Exception as e:
             logger.warning("Failed to load schema cache: %s", e)
 
     def _save_to_disk(self):
-        """Save current cache to disk."""
+        """Save current cache to disk, storing wall-clock fetch times for correct TTL on reload."""
         try:
             _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            now_wall = time.time()
+            now_mono = time.monotonic()
+            # Convert monotonic fetch times to wall-clock so TTL survives process restarts
+            fetch_times = {
+                source: now_wall - (now_mono - mono_ts)
+                for source, mono_ts in self._schema_cache_time.items()
+            }
             data = {
                 "schemas": self._schema_cache,
                 "data_source_ids": self._data_source_cache,
-                "updated_at": time.time()
+                "fetch_times": fetch_times,
+                "updated_at": now_wall,
             }
             # Write to temp file then move for atomicity
             tmp_file = _CACHE_FILE.with_suffix(".tmp")

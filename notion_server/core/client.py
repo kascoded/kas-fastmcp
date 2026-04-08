@@ -4,6 +4,9 @@ Handles all HTTP communication with Notion API.
 No business logic - pure HTTP wrapper.
 """
 
+import asyncio
+import time
+import uuid
 from typing import Optional, Dict, Any
 import httpx
 from config import NotionConfig
@@ -75,8 +78,12 @@ class NotionClient:
             JSON response from Notion API
         """
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
+        trace_id = uuid.uuid4().hex[:8]
         retry_count = 0
         backoff_base = 1.0  # seconds
+
+        logger.debug("[%s] %s %s", trace_id, method, endpoint)
+        t0 = time.monotonic()
 
         while True:
             try:
@@ -89,6 +96,8 @@ class NotionClient:
                     timeout=timeout,
                 )
                 response.raise_for_status()
+                elapsed_ms = (time.monotonic() - t0) * 1000
+                logger.debug("[%s] %s %s -> 200 (%.0fms)", trace_id, method, endpoint, elapsed_ms)
                 return response.json()
 
             except httpx.HTTPStatusError as e:
@@ -100,12 +109,11 @@ class NotionClient:
                     # Notion usually sends 'Retry-After' in seconds
                     retry_after = e.response.headers.get("Retry-After")
                     wait_time = float(retry_after) if retry_after else (backoff_base * (2 ** (retry_count - 1)))
-                    
+
                     logger.warning(
-                        "Rate limit (429) hit for %s. Retrying in %.2fs (attempt %d/%d)...",
-                        endpoint, wait_time, retry_count, max_retries
+                        "[%s] Rate limit (429) hit for %s. Retrying in %.2fs (attempt %d/%d)...",
+                        trace_id, endpoint, wait_time, retry_count, max_retries
                     )
-                    import asyncio
                     await asyncio.sleep(wait_time)
                     continue
 
@@ -140,11 +148,13 @@ class NotionClient:
                 else:
                     raise RuntimeError(f"Notion API error ({status}): {error_body}")
 
-        except httpx.TimeoutException:
-            raise RuntimeError(f"Request timed out after {timeout}s")
+            except httpx.TimeoutException as e:
+                logger.error("[%s] %s %s timed out after %ds", trace_id, method, endpoint, timeout)
+                raise RuntimeError(f"Request timed out after {timeout}s") from e
 
-        except Exception as e:
-            raise RuntimeError(f"Request failed: {str(e)}")
+            except Exception as e:
+                logger.error("[%s] %s %s failed: %s: %s", trace_id, method, endpoint, type(e).__name__, e)
+                raise RuntimeError(f"Request failed: {type(e).__name__}: {e}") from e
     
     # Convenience methods for common operations
     

@@ -3,7 +3,9 @@ Notion Content Tools
 Operations for reading and writing page content (blocks).
 """
 
+import asyncio
 import logging
+import time
 from typing import Dict, Any
 from notion_server.server import mcp
 from notion_server.deps import _client, _property_formatter, _block_formatter
@@ -11,12 +13,14 @@ from notion_server.deps import _client, _property_formatter, _block_formatter
 logger = logging.getLogger(__name__)
 
 _MAX_BLOCK_PAGES = 100  # Maximum pagination iterations (~10 000 blocks at page_size=100)
+_BLOCK_FETCH_TOTAL_TIMEOUT = 120  # seconds — hard wall-clock cap across all pages
 
 
 async def _get_all_blocks(page_id: str) -> list:
     """Fetch all block children, following pagination cursors.
 
-    Caps at _MAX_BLOCK_PAGES iterations to prevent infinite loops.
+    Caps at _MAX_BLOCK_PAGES iterations and _BLOCK_FETCH_TOTAL_TIMEOUT seconds
+    to prevent runaway fetches on extremely large pages.
     Passes the pagination cursor as a proper query parameter rather than
     appending it to the URL string.
     """
@@ -24,6 +28,7 @@ async def _get_all_blocks(page_id: str) -> list:
     endpoint = f"blocks/{page_id}/children"
     params = None
     iterations = 0
+    start_time = time.monotonic()
 
     while True:
         if iterations >= _MAX_BLOCK_PAGES:
@@ -32,6 +37,18 @@ async def _get_all_blocks(page_id: str) -> list:
                 "returning %d blocks fetched so far",
                 page_id,
                 _MAX_BLOCK_PAGES,
+                len(blocks),
+            )
+            break
+
+        elapsed = time.monotonic() - start_time
+        if elapsed >= _BLOCK_FETCH_TOTAL_TIMEOUT:
+            logger.warning(
+                "blocks/%s/children: total timeout of %ds exceeded after %d iterations; "
+                "returning %d blocks fetched so far",
+                page_id,
+                _BLOCK_FETCH_TOTAL_TIMEOUT,
+                iterations,
                 len(blocks),
             )
             break
@@ -129,12 +146,10 @@ async def notion_replace_content(
     # 1. Get all existing blocks
     existing_blocks = await _get_all_blocks(page_id)
     
-    # 2. Delete all existing blocks (can be done in parallel or sequence)
-    # Note: Notion API requires deleting each block individually
-    for block in existing_blocks:
-        block_id = block.get("id")
-        if block_id:
-            await _client.delete(f"blocks/{block_id}")
+    # 2. Delete all existing blocks in parallel (each must be deleted individually per Notion API)
+    block_ids = [block["id"] for block in existing_blocks if block.get("id")]
+    if block_ids:
+        await asyncio.gather(*[_client.delete(f"blocks/{bid}") for bid in block_ids])
             
     # 3. Append new blocks
     blocks = _block_formatter.from_markdown(content_markdown)

@@ -9,9 +9,6 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-
 
 def _user_config_yaml_path() -> Path:
     """Return the user-level databases.yaml path: ~/.config/kas-fastmcp/databases.yaml."""

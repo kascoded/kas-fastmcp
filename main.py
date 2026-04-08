@@ -3,11 +3,19 @@
 Notion Assistant MCP Server
 Entry point for the FastMCP-based Notion integration.
 """
+import logging
 import sys
 from dotenv import load_dotenv
 
 # Load environment variables first
 load_dotenv()
+
+logging.basicConfig(
+    stream=sys.stderr,
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 # Import configuration and validate
 from config import NotionConfig
@@ -15,12 +23,12 @@ from config import NotionConfig
 # Validate configuration before starting server
 try:
     NotionConfig.validate()
-    print("✓ Configuration validated successfully", file=sys.stderr)
-    print(f"✓ Using Notion API version: {NotionConfig.API_VERSION}", file=sys.stderr)
-    print(f"✓ Configured databases: {list(NotionConfig.DATABASES.keys())}", file=sys.stderr)
+    logger.info("Configuration validated successfully")
+    logger.info("Using Notion API version: %s", NotionConfig.API_VERSION)
+    logger.info("Configured databases: %s", list(NotionConfig.DATABASES.keys()))
 except ValueError as e:
-    print(f"❌ Configuration Error:\n{e}", file=sys.stderr)
-    print("\nPlease check your .env file and ensure all required variables are set.", file=sys.stderr)
+    logger.error("Configuration error:\n%s", e)
+    logger.error("Please check your .env file and ensure all required variables are set.")
     sys.exit(1)
 
 # Import and expose the server for FastMCP
@@ -28,14 +36,11 @@ except ValueError as e:
 from notion_server.server import mcp
 
 if __name__ == "__main__":
-    print("Starting Notion Assistant MCP Server...", file=sys.stderr)
+    logger.info("Starting Notion Assistant MCP Server...")
     try:
-        # Run the FastMCP server
         mcp.run()
     except KeyboardInterrupt:
-        print("\nServer stopped by user", file=sys.stderr)
+        logger.info("Server stopped by user")
     except Exception as e:
-        print(f"❌ Server error: {e}", file=sys.stderr)
-        import traceback
-        traceback.print_exc()
+        logger.exception("Server error: %s", e)
         sys.exit(1)

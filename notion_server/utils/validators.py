@@ -182,51 +182,60 @@ class PropertyValidator:
         """Validate select property."""
         if not isinstance(value, dict):
             return f"Property '{prop_name}' (select) must be a dict"
-        
+
         if "select" not in value:
             return f"Property '{prop_name}' (select) missing 'select' key"
-        
+
         select = value["select"]
         if select is None:
             return None  # Null is valid
-        
+
         if not isinstance(select, dict):
             return f"Property '{prop_name}' (select) value must be a dict or null"
-        
-        # Check if option is valid (if schema has options)
+
+        # Warn on unknown options but pass through — Notion is the authoritative validator.
+        # Pre-emptive rejection causes false failures when the local schema cache is stale
+        # (e.g. a new option was added to Notion but hasn't been resynced yet).
         options = schema.get("options", [])
         if options and "name" in select:
             if select["name"] not in options:
-                return (
-                    f"Property '{prop_name}' (select) invalid option '{select['name']}'. "
-                    f"Valid options: {options}"
+                import logging
+                logging.getLogger(__name__).warning(
+                    "Property '%s' (select): option '%s' not in cached schema options %s — "
+                    "passing through; Notion will reject if truly invalid.",
+                    prop_name, select["name"], options,
                 )
-        
+
         return None
     
     def _validate_multi_select(self, prop_name: str, value: Any, schema: Dict[str, Any]) -> Optional[str]:
         """Validate multi-select property."""
         if not isinstance(value, dict):
             return f"Property '{prop_name}' (multi_select) must be a dict"
-        
+
         if "multi_select" not in value:
             return f"Property '{prop_name}' (multi_select) missing 'multi_select' key"
-        
+
         multi_select = value["multi_select"]
         if not isinstance(multi_select, list):
             return f"Property '{prop_name}' (multi_select) value must be an array"
-        
-        # Check if options are valid (if schema has options)
+
+        # Warn on unknown options but pass through — Notion creates new multi_select options
+        # on write, and the local schema cache may be stale. Hard rejection here causes false
+        # failures whenever you add a new tag or genre to Notion before the next schema sync.
         options = schema.get("options", [])
         if options:
+            import logging
+            _log = logging.getLogger(__name__)
             for item in multi_select:
                 if isinstance(item, dict) and "name" in item:
                     if item["name"] not in options:
-                        return (
-                            f"Property '{prop_name}' (multi_select) invalid option '{item['name']}'. "
-                            f"Valid options: {options}"
+                        _log.warning(
+                            "Property '%s' (multi_select): option '%s' not in cached schema "
+                            "options — passing through; Notion will create it or reject it.",
+                            prop_name, item["name"],
                         )
-        
+
         return None
     
     def _validate_status(self, prop_name: str, value: Any, schema: Dict[str, Any]) -> Optional[str]:
@@ -329,24 +338,3 @@ class PropertyValidator:
             return f"Property '{prop_name}' (phone_number) value must be string or null"
         
         return None
-
-
-def quick_validate(properties: Dict[str, Any], schema: Dict[str, Any]) -> None:
-    """
-    Quick validation helper that raises exception on error.
-    
-    Args:
-        properties: Properties to validate
-        schema: Database schema
-        
-    Raises:
-        ValueError: If validation fails
-    """
-    validator = PropertyValidator(schema)
-    is_valid, errors = validator.validate_properties(properties)
-    
-    if not is_valid:
-        raise ValueError(
-            f"Property validation failed:\n" +
-            "\n".join(f"  • {error}" for error in errors)
-        )

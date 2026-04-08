@@ -106,9 +106,10 @@ async def notion_create_item(
     except ValueError:
         raise
     except Exception as e:
-        # Schema fetch errors don't block creation, but log so it's observable
-        logger.warning("Schema fetch failed for '%s', skipping validation: %s", source_name, e)
-    
+        raise RuntimeError(
+            f"Schema fetch failed for '{source_name}', cannot validate properties before creation: {e}"
+        ) from e
+
     payload: Dict[str, Any] = {
         "properties": properties or {},
     }
