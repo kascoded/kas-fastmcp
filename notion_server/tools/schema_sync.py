@@ -116,10 +116,10 @@ async def notion_discover_databases() -> Dict[str, Any]:
     Returns:
         List of discovered databases with their IDs and basic information
     """
-    # Search for databases — the Notion Search API only accepts "page" or "database"
-    # as valid object filter values; "data_source" is not a valid value and returns nothing.
+    # Search for data sources — Notion API 2025-09-03+ only accepts "page" or "data_source"
+    # as valid filter values. "database" was removed in this API version.
     payload = {
-        "filter": {"property": "object", "value": "database"},
+        "filter": {"property": "object", "value": "data_source"},
         "page_size": 100,
     }
     result = await _client.post("search", payload)
@@ -138,10 +138,10 @@ async def notion_discover_databases() -> Dict[str, Any]:
         title_array = db.get("title", [])
         title = title_array[0].get("plain_text", "Untitled") if title_array else "Untitled"
 
-        db_id = db.get("id")
-        # data_source_id is nested under the database object in API 2025-09-03
-        data_sources = db.get("data_sources", [])
-        ds_id = data_sources[0].get("id") if data_sources else None
+        # In data_source results, id IS the data_source_id;
+        # the parent database_id lives in database_parent.
+        ds_id = db.get("id")
+        db_id = (db.get("database_parent") or {}).get("database_id")
 
         is_configured = (db_id and db_id in configured_ids) or (ds_id and ds_id in configured_ids)
 

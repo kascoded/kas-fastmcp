@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.3.1] - 2026-04-10
+
+### Fixed
+
+- **`notion_discover_databases` broken — wrong search filter value** — The `filter.value` was set to `"database"`, which is not a valid value in Notion API `2025-09-03+`. Changed to `"data_source"` (the only valid options are `"page"` and `"data_source"`). The result parsing was also updated: in `data_source` search results, the `id` field is the `data_source_id` directly, and the `database_id` is nested under `database_parent.database_id` — both were previously extracted from the wrong locations.
+- **`notion_replace_content` silently ignored block delete failures** — `asyncio.gather` was firing all block deletes with no error handling. Failures are now detected via `return_exceptions=True` and raised with a clear message indicating how many blocks failed and which error occurred first. This prevents partial page corruption where only some blocks are deleted before new content is appended.
+- **Schema cache defensive access** — `get_schema()` used `source_name in self._schema_cache` followed by direct `self._schema_cache[source_name]`, which could raise a `KeyError` if another coroutine evicted the entry between the two operations. Both the fast path and the locked path now use `.get()` with a `None` check.
+
+---
+
 ## [2.3.0] - 2026-04-02
 
 ### Added

@@ -204,15 +204,19 @@ class SchemaManager:
             Properties schema dict
         """
         # Fast path — valid cache hit, no lock needed
-        if source_name in self._schema_cache:
-            if time.monotonic() - self._schema_cache_time[source_name] < _SCHEMA_TTL:
-                return self._schema_cache[source_name]
+        cached_at = self._schema_cache_time.get(source_name)
+        if cached_at is not None and time.monotonic() - cached_at < _SCHEMA_TTL:
+            cached = self._schema_cache.get(source_name)
+            if cached is not None:
+                return cached
 
         async with self._schema_lock(source_name):
             # Re-check after acquiring lock (another coroutine may have fetched already)
-            if source_name in self._schema_cache:
-                if time.monotonic() - self._schema_cache_time[source_name] < _SCHEMA_TTL:
-                    return self._schema_cache[source_name]
+            cached_at = self._schema_cache_time.get(source_name)
+            if cached_at is not None and time.monotonic() - cached_at < _SCHEMA_TTL:
+                cached = self._schema_cache.get(source_name)
+                if cached is not None:
+                    return cached
 
             # Fetch from API
             data_source_id = await self.get_data_source_id(source_name)

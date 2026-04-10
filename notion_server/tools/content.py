@@ -149,7 +149,16 @@ async def notion_replace_content(
     # 2. Delete all existing blocks in parallel (each must be deleted individually per Notion API)
     block_ids = [block["id"] for block in existing_blocks if block.get("id")]
     if block_ids:
-        await asyncio.gather(*[_client.delete(f"blocks/{bid}") for bid in block_ids])
+        delete_results = await asyncio.gather(
+            *[_client.delete(f"blocks/{bid}") for bid in block_ids],
+            return_exceptions=True,
+        )
+        failed = [r for r in delete_results if isinstance(r, Exception)]
+        if failed:
+            raise RuntimeError(
+                f"Failed to delete {len(failed)}/{len(block_ids)} blocks; "
+                f"page may be partially modified. First error: {failed[0]}"
+            )
             
     # 3. Append new blocks
     blocks = _block_formatter.from_markdown(content_markdown)
