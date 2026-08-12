@@ -27,7 +27,7 @@ class NotionClient:
             api_version: API version (defaults to NotionConfig.API_VERSION)
         """
         self.token = token or self._validate_token(NotionConfig.TOKEN)
-        self.api_version = api_version or NotionConfig.API_VERSION or "2025-09-03"
+        self.api_version = api_version or NotionConfig.API_VERSION or "2026-03-11"
         self.base_url = "https://api.notion.com/v1"
         # Shared client — reuses the TCP/TLS connection pool across all requests
         self._http = httpx.AsyncClient()

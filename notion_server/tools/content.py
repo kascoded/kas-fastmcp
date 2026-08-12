@@ -3,7 +3,6 @@ Notion Content Tools
 Operations for reading and writing page content (blocks).
 """
 
-import asyncio
 import logging
 import time
 from typing import Dict, Any
@@ -16,15 +15,19 @@ _MAX_BLOCK_PAGES = 100  # Maximum pagination iterations (~10 000 blocks at page_
 _BLOCK_FETCH_TOTAL_TIMEOUT = 120  # seconds — hard wall-clock cap across all pages
 
 
-async def _get_all_blocks(page_id: str) -> list:
+async def _get_all_blocks(page_id: str) -> tuple[list, bool]:
     """Fetch all block children, following pagination cursors.
 
     Caps at _MAX_BLOCK_PAGES iterations and _BLOCK_FETCH_TOTAL_TIMEOUT seconds
     to prevent runaway fetches on extremely large pages.
-    Passes the pagination cursor as a proper query parameter rather than
-    appending it to the URL string.
+
+    Returns:
+        (blocks, truncated) — truncated=True if the cap or timeout was hit before
+        all blocks were fetched. Callers should surface this to avoid silent
+        data loss when the result is used for destructive operations.
     """
     blocks = []
+    truncated = False
     endpoint = f"blocks/{page_id}/children"
     params = None
     iterations = 0
@@ -39,6 +42,7 @@ async def _get_all_blocks(page_id: str) -> list:
                 _MAX_BLOCK_PAGES,
                 len(blocks),
             )
+            truncated = True
             break
 
         elapsed = time.monotonic() - start_time
@@ -51,6 +55,7 @@ async def _get_all_blocks(page_id: str) -> list:
                 iterations,
                 len(blocks),
             )
+            truncated = True
             break
 
         result = await _client.get(endpoint, params=params)
@@ -72,10 +77,10 @@ async def _get_all_blocks(page_id: str) -> list:
 
         params = {"start_cursor": cursor}
 
-    return blocks
+    return blocks, truncated
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_get_page_content(page_id: str) -> Dict[str, Any]:
     """
     Get the content of a page as markdown.
@@ -88,17 +93,18 @@ async def notion_get_page_content(page_id: str) -> Dict[str, Any]:
         Object with page_id, title, content in markdown format, and URL
     """
     page = await _client.get(f"pages/{page_id}")
-    blocks = await _get_all_blocks(page_id)
+    blocks, truncated = await _get_all_blocks(page_id)
 
     return {
         "page_id": page_id,
         "title": _property_formatter.extract_title(page.get("properties", {})),
         "content_markdown": _block_formatter.to_markdown(blocks),
         "url": page.get("url"),
+        "truncated": truncated,
     }
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_append_content(
     page_id: str,
     content_markdown: str,
@@ -127,7 +133,7 @@ async def notion_append_content(
     }
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_replace_content(
     page_id: str,
     content_markdown: str,
@@ -144,32 +150,53 @@ async def notion_replace_content(
         Confirmation with page_id and number of new blocks added
     """
     # 1. Get all existing blocks
-    existing_blocks = await _get_all_blocks(page_id)
-    
-    # 2. Delete all existing blocks in parallel (each must be deleted individually per Notion API)
-    block_ids = [block["id"] for block in existing_blocks if block.get("id")]
-    if block_ids:
-        delete_results = await asyncio.gather(
-            *[_client.delete(f"blocks/{bid}") for bid in block_ids],
-            return_exceptions=True,
+    existing_blocks, truncated = await _get_all_blocks(page_id)
+    if truncated:
+        raise RuntimeError(
+            f"Page {page_id} has more blocks than the fetch cap allows. "
+            "Replacing content would destroy blocks that weren't fetched. Aborting."
         )
-        failed = [r for r in delete_results if isinstance(r, Exception)]
-        if failed:
+
+    # 2. Delete existing blocks sequentially (Notion doesn't guarantee safe concurrent
+    #    modification of a page's block tree under parallel deletes).
+    block_ids = [block["id"] for block in existing_blocks if block.get("id")]
+    for bid in block_ids:
+        await _client.delete(f"blocks/{bid}")
+
+    # 3. Append new blocks — if this fails, attempt to restore the old content.
+    new_blocks = _block_formatter.from_markdown(content_markdown)
+    if new_blocks:
+        try:
+            await _client.patch(f"blocks/{page_id}/children", {"children": new_blocks})
+        except Exception as append_err:
+            if existing_blocks:
+                try:
+                    old_blocks = _block_formatter.from_markdown(
+                        _block_formatter.to_markdown(existing_blocks)
+                    )
+                    await _client.patch(f"blocks/{page_id}/children", {"children": old_blocks})
+                    logger.error(
+                        "notion_replace_content: append failed; restored original content. "
+                        "Append error: %s",
+                        append_err,
+                    )
+                except Exception as restore_err:
+                    logger.error(
+                        "notion_replace_content: append failed AND restore failed. "
+                        "Page %s may be blank. Append error: %s | Restore error: %s",
+                        page_id,
+                        append_err,
+                        restore_err,
+                    )
             raise RuntimeError(
-                f"Failed to delete {len(failed)}/{len(block_ids)} blocks; "
-                f"page may be partially modified. First error: {failed[0]}"
-            )
-            
-    # 3. Append new blocks
-    blocks = _block_formatter.from_markdown(content_markdown)
-    if blocks:
-        payload = {"children": blocks}
-        await _client.patch(f"blocks/{page_id}/children", payload)
-    
+                f"Content append failed after deleting existing blocks. "
+                f"Restore attempted. Original error: {append_err}"
+            ) from append_err
+
     return {
         "page_id": page_id,
         "replaced": True,
         "blocks_deleted": len(existing_blocks),
-        "blocks_added": len(blocks),
+        "blocks_added": len(new_blocks),
         "url": f"https://www.notion.so/{page_id.replace('-', '')}",
     }

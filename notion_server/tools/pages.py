@@ -13,7 +13,7 @@ from notion_server.tools.content import _get_all_blocks
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_get_page(page_id: str, include_content: bool = False) -> Dict[str, Any]:
     """
     Retrieve a single page by ID.
@@ -34,17 +34,17 @@ async def notion_get_page(page_id: str, include_content: bool = False) -> Dict[s
         "url": page.get("url"),
         "created_time": page.get("created_time"),
         "last_edited_time": page.get("last_edited_time"),
-        "archived": page.get("archived"),
+        "in_trash": page.get("in_trash"),
     }
     
     if include_content:
-        blocks = await _get_all_blocks(page_id)
+        blocks, _ = await _get_all_blocks(page_id)
         result["content_markdown"] = _block_formatter.to_markdown(blocks)
     
     return result
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_get_data_source(source_name: str) -> Dict[str, Any]:
     """
     Get detailed information about a data source including its schema/properties.
@@ -73,7 +73,7 @@ async def notion_get_data_source(source_name: str) -> Dict[str, Any]:
     }
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_create_item(
     source_name: str,
     properties: Dict[str, Any],
@@ -134,23 +134,23 @@ async def notion_create_item(
     }
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_update_item(
     page_id: str,
     properties: Optional[Dict[str, Any]] = None,
-    archived: Optional[bool] = None,
+    in_trash: Optional[bool] = None,
     icon: Optional[Dict[str, Any]] = None,
     cover: Optional[Dict[str, Any]] = None,
     source_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Update an existing page's properties (and optionally archived/icon/cover).
+    Update an existing page's properties (and optionally in_trash/icon/cover).
     Pass source_name to enable property validation against the database schema.
 
     Args:
         page_id: The page ID to update
         properties: Properties to update (partial update supported)
-        archived: Archive or restore the page
+        in_trash: Move page to trash or restore it
         icon: Update page icon
         cover: Update page cover
         source_name: Optional config source name — enables schema validation when provided
@@ -177,8 +177,8 @@ async def notion_update_item(
     
     if properties:
         payload["properties"] = properties
-    if archived is not None:
-        payload["archived"] = archived
+    if in_trash is not None:
+        payload["in_trash"] = in_trash
     if icon is not None:
         payload["icon"] = icon
     if cover is not None:
@@ -194,7 +194,7 @@ async def notion_update_item(
     }
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_archive_item(page_id: str) -> Dict[str, Any]:
     """
     Archives a page by its ID (soft delete).
@@ -205,10 +205,10 @@ async def notion_archive_item(page_id: str) -> Dict[str, Any]:
     Returns:
         Confirmation of the archival
     """
-    result = await _client.patch(f"pages/{page_id}", {"archived": True})
-    
+    result = await _client.patch(f"pages/{page_id}", {"in_trash": True})
+
     return {
         "page_id": result.get("id"),
-        "archived": result.get("archived", False),
+        "in_trash": result.get("in_trash", False),
         "url": result.get("url"),
     }

@@ -9,7 +9,7 @@ from notion_server.deps import _client, _schema_manager, _property_formatter
 from config import NotionConfig
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_query(
     source_name: str,
     filter: Optional[Dict[str, Any]] = None,
@@ -47,7 +47,7 @@ async def notion_query(
     return await _client.post(f"data_sources/{data_source_id}/query", payload)
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_find_page_by_name(
     source_name: str,
     page_name: str,
@@ -101,7 +101,7 @@ async def notion_find_page_by_name(
     }
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_search(
     query: Optional[str] = None,
     filter: Optional[Dict[str, Any]] = None,
@@ -115,7 +115,7 @@ async def notion_search(
     
     Args:
         query: Text to search for
-        filter: Filter by object type (e.g., {"property": "object", "value": "page"})
+        filter: Filter by object type (e.g., {"property": "object", "value": "page"} or "data_source")
         sort: Sort configuration
         page_size: Number of results (1-100)
         start_cursor: Pagination cursor
@@ -138,7 +138,7 @@ async def notion_search(
     return await _client.post("search", payload)
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_list_data_sources(source_name: str) -> Dict[str, Any]:
     """
     List all data sources for a database.

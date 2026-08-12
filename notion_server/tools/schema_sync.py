@@ -17,7 +17,7 @@ import datetime
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_sync_schemas(
     source_names: Optional[List[str]] = None,
     update_config: bool = False
@@ -74,7 +74,7 @@ async def notion_sync_schemas(
                 current_config = NotionConfig.get_database_config(source_name)
                 updated_config = current_config.copy()
                 updated_config["schema"] = schema
-                updated_config["last_sync"] = datetime.datetime.utcnow().isoformat()
+                updated_config["last_sync"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
                 
                 # Ensure we have data_source_id in config
                 if not updated_config.get("data_source_id"):
@@ -103,11 +103,12 @@ async def notion_sync_schemas(
         "results": results,
         "errors": errors,
         "config_updated": config_updated,
-        "timestamp": datetime.datetime.utcnow().isoformat()
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "overall_status": "healthy" if not errors else "issues_found",
     }
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_discover_databases() -> Dict[str, Any]:
     """
     Discover all available databases in the Notion workspace.
@@ -162,7 +163,7 @@ async def notion_discover_databases() -> Dict[str, Any]:
     }
 
 
-@mcp.tool
+@mcp.tool()
 async def notion_validate_config() -> Dict[str, Any]:
     """
     Validate current database configuration against Notion workspace.
@@ -258,7 +259,7 @@ def _update_databases_yaml(updated_configs: Dict[str, Dict[str, Any]]) -> bool:
     tmp_path = yaml_path.with_suffix(".yaml.tmp")
     with open(tmp_path, "w", opener=lambda path, flags: os.open(path, flags, 0o600)) as f:
         f.write("# Notion Databases Configuration\n")
-        f.write("# Last updated: " + datetime.datetime.utcnow().isoformat() + "\n")
+        f.write("# Last updated: " + datetime.datetime.now(datetime.timezone.utc).isoformat() + "\n")
         f.write("# Written by notion_sync_schemas (update_config=True)\n")
         f.write("# Location: ~/.config/kas-fastmcp/databases.yaml\n")
         f.write("#\n")

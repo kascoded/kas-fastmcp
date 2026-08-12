@@ -121,7 +121,7 @@ class NotionConfig:
     """
     
     TOKEN = os.getenv("NOTION_TOKEN")
-    API_VERSION = os.getenv("NOTION_API_VERSION", "2025-09-03")
+    API_VERSION = os.getenv("NOTION_API_VERSION", "2026-03-11")
     
     # Load databases from YAML first, fallback to environment variables
     _yaml_result: Dict[str, Dict[str, Any]] = _load_databases_from_yaml() or {}
@@ -275,7 +275,7 @@ class NotionConfig:
         """
         load_dotenv(override=True)
         cls.TOKEN = os.getenv("NOTION_TOKEN")
-        cls.API_VERSION = os.getenv("NOTION_API_VERSION", "2025-09-03")
+        cls.API_VERSION = os.getenv("NOTION_API_VERSION", "2026-03-11")
         yaml_result = _load_databases_from_yaml() or {}
         cls.DATABASES = yaml_result or _load_databases_from_env() or {}
         cls._yaml_result = yaml_result

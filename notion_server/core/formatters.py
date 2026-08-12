@@ -3,6 +3,7 @@ Property and Block Formatters
 Handles conversion between Notion's API format and human-readable formats.
 """
 
+import re
 from typing import Dict, Any, List, Optional
 
 
@@ -304,6 +305,10 @@ class BlockFormatter:
             elif line.startswith("- ") or line.startswith("* "):
                 blocks.append({"object": "block", "type": "bulleted_list_item",
                                 "bulleted_list_item": {"rich_text": _rt(line[2:])}})
+            elif re.match(r"^\d+\. ", line):
+                text = re.sub(r"^\d+\. ", "", line, count=1)
+                blocks.append({"object": "block", "type": "numbered_list_item",
+                                "numbered_list_item": {"rich_text": _rt(text)}})
             elif line.startswith("> "):
                 blocks.append({"object": "block", "type": "quote",
                                 "quote": {"rich_text": _rt(line[2:])}})

@@ -2,12 +2,21 @@
 FastMCP Server Instance
 This module creates the FastMCP server instance that will be used by the tools.
 """
+from contextlib import asynccontextmanager
 from config import NotionConfig
 from fastmcp import FastMCP
 
+
+@asynccontextmanager
+async def lifespan(app):
+    yield
+    from notion_server.deps import _client
+    await _client.close()
+
+
 # Create the MCP server instance with a standard name
 # FastMCP looks for variables named: mcp, server, or app
-server = FastMCP("KasNotionMCP")
+server = FastMCP("KasNotionMCP", lifespan=lifespan)
 
 # For compatibility, also expose as 'mcp'
 mcp = server

@@ -33,7 +33,7 @@ packages = ["notion_server", "tools", "config.py", "main.py"]
 
 [tool.fastmcp]
 # Optional section for MCP Cloud — describes your server entrypoint
-entrypoint = "notion_server:server"
+entrypoint = "notion_server.server:server"
 description = "Kas FastMCP server for Notion logging and AI tools"
 
 [tool.ruff]

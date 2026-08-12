@@ -96,7 +96,7 @@ class SchemaSyncer:
                     current_config = NotionConfig.get_database_config(source_name)
                     updated_config = current_config.copy()
                     updated_config["schema"] = schema
-                    updated_config["last_sync"] = datetime.datetime.utcnow().isoformat()
+                    updated_config["last_sync"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
                     
                     # Ensure we have data_source_id in config
                     if not updated_config.get("data_source_id"):
@@ -137,7 +137,7 @@ class SchemaSyncer:
             "results": results,
             "errors": errors,
             "config_updated": config_updated,
-            "timestamp": datetime.datetime.utcnow().isoformat()
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
         }
     
     async def discover_databases(self, verbose: bool = True) -> Dict[str, Any]:
@@ -311,7 +311,7 @@ class SchemaSyncer:
         # Write updated YAML with proper header
         with open(yaml_path, "w") as f:
             f.write("# Notion Databases Configuration\n")
-            f.write(f"# Last updated: {datetime.datetime.utcnow().isoformat()}\n")
+            f.write(f"# Last updated: {datetime.datetime.now(datetime.timezone.utc).isoformat()}\n")
             f.write("# \n")
             f.write("# Each database entry requires either:\n")
             f.write("#   - data_source_id (preferred for API 2025-09-03)\n")
